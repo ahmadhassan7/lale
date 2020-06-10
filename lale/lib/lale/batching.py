@@ -12,51 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lale.operators import make_operator
-
+import lale.docstrings
+import lale.helpers
+import lale.operators
 import numpy as np
-import pandas as pd
-import logging
-import lale.helpers as helpers
-logging.basicConfig(level=logging.INFO)
 
 class BatchingImpl():
-  """Batching trains the given pipeline using batches.
-  The batch_size is used across all steps of the pipeline, serializing
-  the intermediate outputs if specified.
-
-  Parameters
-  ----------
-  operator : lale.operators.Pipeline
-      A Lale pipeline object that needs to be trained/used for transform or predictions,
-      by default None
-  batch_size : int, optional
-      Batch size to be used for all steps in the pipeline, by default 32
-  shuffle : bool, optional
-      Shuffle dataset before batching or not, by default True
-  num_workers : int, optional
-      Number of workers for pytorch dataloader, by default 0
-  inmemory : bool, optional
-      Whether all the computations are done in memory or intermediate outputs are serialized.
-
-  """
-  def __init__(self, operator = None, batch_size = 32, shuffle = True, num_workers = 0, inmemory=False):    
+  def __init__(self, operator = None, batch_size = 32, shuffle = True, num_workers = 0, inmemory=False, num_epochs=None):    
     self.operator = operator
     self.batch_size = batch_size
     self.shuffle = shuffle
     self.num_workers = num_workers
     self.inmemory = inmemory
+    self.num_epochs = num_epochs
 
   def fit(self, X, y = None):
     if self.operator is None:
       raise ValueError("The pipeline object can't be None at the time of fit.")
-    data_loader = helpers.create_data_loader(X = X, y = y, batch_size = self.batch_size)
+    data_loader = lale.helpers.create_data_loader(X = X, y = y, batch_size = self.batch_size)
     classes = np.unique(y)
-    self.operator = self.operator.fit_with_batches(data_loader, y = classes, serialize = self.inmemory)
+    self.operator = self.operator.fit_with_batches(data_loader, y = classes, serialize = self.inmemory, num_epochs_batching=self.num_epochs)
     return self
 
   def transform(self, X, y = None):
-    data_loader = helpers.create_data_loader(X = X, y = y, batch_size = self.batch_size)
+    data_loader = lale.helpers.create_data_loader(X = X, y = y, batch_size = self.batch_size)
     transformed_data = self.operator.transform_with_batches(data_loader, serialize = self.inmemory)
     return transformed_data
 
@@ -152,14 +131,21 @@ _hyperparams_schema = {
           'type':'boolean',
           'default': False,
           'description': 'Whether all the computations are done in memory or intermediate outputs are serialized.'
+          },
+        'num_epochs':{
+          'anyOf':[
+            {'type':'integer'},
+            {'enum':[None]}],
+          'default':None,
+          'description': 'Number of epochs. If the operator has `num_epochs` as a parameter, that takes precedence.'
           }
           }}]}
 
 _combined_schemas = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
-  'description': 'Combined schema for expected data and hyperparameters for a transformer for'
-                ' a text data transformer based on pre-trained BERT model '
-                '(https://github.com/huggingface/pytorch-pretrained-BERT).',
+  'description': """Batching trains the given pipeline using batches.
+The batch_size is used across all steps of the pipeline, serializing
+the intermediate outputs if specified.""",
   'type': 'object',
   'tags': {
     'pre': [],
@@ -173,7 +159,6 @@ _combined_schemas = {
     'input_transform': _input_predict_transform_schema,
     'output_transform': _output_schema}}
 
-if __name__ == "__main__":
-    helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(BatchingImpl, _combined_schemas)
 
-Batching = make_operator(BatchingImpl, _combined_schemas)
+Batching = lale.operators.make_operator(BatchingImpl, _combined_schemas)

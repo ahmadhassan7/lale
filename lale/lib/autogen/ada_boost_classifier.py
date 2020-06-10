@@ -1,7 +1,8 @@
 
-from sklearn.ensemble.weight_boosting import AdaBoostClassifier as SKLModel
+from sklearn.ensemble.weight_boosting import AdaBoostClassifier as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class AdaBoostClassifierImpl():
@@ -13,20 +14,23 @@ class AdaBoostClassifierImpl():
             'learning_rate': learning_rate,
             'algorithm': algorithm,
             'random_state': random_state}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for AdaBoostClassifier    An AdaBoost classifier.',
@@ -145,13 +149,40 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+_input_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Compute the decision function of ``X``.',
+    'type': 'object',
+    'required': ['X'],
+    'properties': {
+        'X': {
+            'type': 'array',
+            'items': {
+                'type': 'array',
+                'items': {
+                    'type': 'number'},
+            },
+            'description': 'The training input samples'},
+    },
+}
+_output_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'The decision function of the input samples',
+    'type': 'array',
+    'items': {
+        'type': 'array',
+        'items': {
+            'type': 'number'},
+    },
+}
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.AdaBoostClassifier#sklearn-ensemble-adaboostclassifier',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['estimator', 'classifier'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -159,9 +190,10 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema},
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(AdaBoostClassifierImpl, _combined_schemas)
 AdaBoostClassifier = lale.operators.make_operator(AdaBoostClassifierImpl, _combined_schemas)
 

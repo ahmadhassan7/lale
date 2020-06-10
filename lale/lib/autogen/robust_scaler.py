@@ -1,7 +1,8 @@
 
-from sklearn.preprocessing.data import RobustScaler as SKLModel
+from sklearn.preprocessing.data import RobustScaler as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class RobustScalerImpl():
@@ -12,17 +13,17 @@ class RobustScalerImpl():
             'with_scaling': with_scaling,
             'quantile_range': quantile_range,
             'copy': copy}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for RobustScaler    Scale features using statistics that are robust to outliers.',
@@ -87,10 +88,12 @@ _input_transform_schema = {
 _output_transform_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Center and scale the data.',
+    'laleType': 'Any',
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.RobustScaler#sklearn-preprocessing-robustscaler',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -102,7 +105,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RobustScalerImpl, _combined_schemas)
 RobustScaler = lale.operators.make_operator(RobustScalerImpl, _combined_schemas)
 

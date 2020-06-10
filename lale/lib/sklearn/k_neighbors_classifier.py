@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
 import lale.operators
+import lale.docstrings
 import sklearn.neighbors
 
 _hyperparams_schema = {
@@ -34,7 +34,7 @@ _hyperparams_schema = {
             'n_neighbors': {
                 'description': 'Number of neighbors to use by default for kneighbors queries.',
                 'type': 'integer',
-                'distribution': 'loguniform',
+                'distribution': 'uniform',
                 'minimum': 1,
                 'default': 5,
                 'maximumForOptimizer': 100},
@@ -49,7 +49,7 @@ _hyperparams_schema = {
             'leaf_size': {
                 'description': 'Leaf size passed to BallTree or KDTree.',
                 'type': 'integer',
-                'distribution': 'loguniform',
+                'distribution': 'uniform',
                 'minimum': 1,
                 'default': 30},
             'p': {
@@ -129,7 +129,8 @@ _input_fit_schema = {
                 {'type': 'array', 'items': {'type': 'number'}},
                 {'type': 'array', 'items': {
                     'type': 'array', 'items': {'type': 'number'}}},
-                {'type': 'array', 'items': {'type': 'string'}}]}}}
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}]}}}
 
 _input_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -152,7 +153,8 @@ _output_predict_schema = {
         {'type': 'array', 'items': {'type': 'number'}},
         {'type': 'array', 'items': {
             'type': 'array', 'items': {'type': 'number'}}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -176,8 +178,11 @@ _output_predict_proba_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html',
+    'description': """`K nearest neighbors classifier`_ from scikit-learn.
+
+.. _`K nearest neighbors classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.neighbors.KNeighborsClassifier.html#sklearn-neighbors-kneighborsclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.k_neighbors_classifier.html',
     'type': 'object',
     'tags': {
         'pre': ['~categoricals'],
@@ -190,23 +195,22 @@ _combined_schemas = {
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
     
 class KNeighborsClassifierImpl():
     def __init__(self, **hyperparams):
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.neighbors.KNeighborsClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.neighbors.KNeighborsClassifier(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+lale.docstrings.set_docstrings(KNeighborsClassifierImpl, _combined_schemas)
 
 KNeighborsClassifier = lale.operators.make_operator(KNeighborsClassifierImpl, _combined_schemas)

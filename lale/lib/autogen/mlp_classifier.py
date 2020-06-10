@@ -1,7 +1,8 @@
 
-from sklearn.neural_network.multilayer_perceptron import MLPClassifier as SKLModel
+from sklearn.neural_network.multilayer_perceptron import MLPClassifier as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class MLPClassifierImpl():
@@ -30,20 +31,20 @@ class MLPClassifierImpl():
             'beta_2': beta_2,
             'epsilon': epsilon,
             'n_iter_no_change': n_iter_no_change}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for MLPClassifier    Multi-layer Perceptron classifier.',
@@ -117,7 +118,7 @@ _hyperparams_schema = {
                 'type': 'number',
                 'minimumForOptimizer': 1e-08,
                 'maximumForOptimizer': 0.01,
-                'distribution': 'uniform',
+                'distribution': 'loguniform',
                 'default': 0.0001,
                 'description': 'Tolerance for the optimization'},
             'verbose': {
@@ -393,10 +394,11 @@ _output_predict_proba_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.neural_network.MLPClassifier#sklearn-neural_network-mlpclassifier',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['estimator', 'classifier'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -406,7 +408,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(MLPClassifierImpl, _combined_schemas)
 MLPClassifier = lale.operators.make_operator(MLPClassifierImpl, _combined_schemas)
 

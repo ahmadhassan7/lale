@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from sklearn.ensemble import VotingClassifier as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class VotingClassifierImpl():
@@ -24,23 +24,26 @@ class VotingClassifierImpl():
             'weights': weights,
             'n_jobs': n_jobs,
             'flatten_transform': flatten_transform}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
     
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
     
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -202,14 +205,38 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingClassifier.html',
+    'description': """`Voting classifier`_ from scikit-learn for voting ensemble.
+
+.. _`Voting classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.VotingClassifier.html#sklearn-ensemble-votingclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.voting_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['transformer'],
+        'op': ['transformer', 'estimator'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -219,8 +246,11 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema,
         'input_transform': _input_transform_schema,
-        'output_transform': _output_transform_schema}}
+        'output_transform': _output_transform_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(VotingClassifierImpl, _combined_schemas)
+
 VotingClassifier = lale.operators.make_operator(VotingClassifierImpl, _combined_schemas)

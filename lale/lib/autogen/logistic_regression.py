@@ -1,7 +1,8 @@
 
-from sklearn.linear_model.logistic import LogisticRegression as SKLModel
+from sklearn.linear_model.logistic import LogisticRegression as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LogisticRegressionImpl():
@@ -22,20 +23,23 @@ class LogisticRegressionImpl():
             'verbose': verbose,
             'warm_start': warm_start,
             'n_jobs': n_jobs}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for LogisticRegression    Logistic Regression (aka logit, MaxEnt) classifier.',
@@ -89,7 +93,7 @@ _hyperparams_schema = {
                 'default': None,
                 'description': 'The seed of the pseudo random number generator to use when shuffling the data'},
             'solver': {
-                'enum': ['lbfgs', 'liblinear', 'newton-cg', 'sag', 'saga'],
+                'enum': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
                 'default': 'liblinear',
                 'description': 'Algorithm to use in the optimization problem'},
             'max_iter': {
@@ -100,7 +104,7 @@ _hyperparams_schema = {
                 'default': 100,
                 'description': 'Useful only for the newton-cg, sag and lbfgs solvers'},
             'multi_class': {
-                'enum': ['auto', 'liblinear', 'multinomial', 'ovr'],
+                'enum': ['ovr', 'multinomial', 'auto'],
                 'default': 'ovr',
                 'description': "If the option chosen is 'ovr', then a binary problem is fit for each label"},
             'verbose': {
@@ -121,8 +125,8 @@ _hyperparams_schema = {
         'XXX TODO XXX': 'Parameter: penalty > only l2 penalties'}, {
         'XXX TODO XXX': 'Parameter: dual > only implemented for l2 penalty with liblinear solver'}, {
         'XXX TODO XXX': "Parameter: intercept_scaling > only when the solver 'liblinear' is used and self"}, {
-        'XXX TODO XXX': "Parameter: solver > only 'newton-cg'"}, {
-        'description': 'max_iter, only for the newton-cg',
+        'XXX TODO XXX': "Parameter: solver > only 'newton-cg', 'sag', 'saga' and 'lbfgs' handle multinomial loss; 'liblinear' is limited to one-versus-rest schemes"}, {
+        'description': 'max_iter, only for the newton-cg, sag and lbfgs solvers',
         'anyOf': [{
             'type': 'object',
             'properties': {
@@ -131,8 +135,8 @@ _hyperparams_schema = {
             }}, {
             'type': 'object',
             'properties': {
-                'newton-cg': {
-                    'enum': ['the']},
+                'solvers': {
+                    'enum': ['newton-cg', 'sag', 'lbfgs']},
             }}]}],
 }
 _input_fit_schema = {
@@ -214,9 +218,38 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+_input_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Predict confidence scores for samples.',
+    'type': 'object',
+    'required': ['X'],
+    'properties': {
+        'X': {
+            'anyOf': [{
+                'type': 'array',
+                'items': {
+                    'laleType': 'Any',
+                    'XXX TODO XXX': 'item type'},
+                'XXX TODO XXX': 'array_like or sparse matrix, shape (n_samples, n_features)'}, {
+                'type': 'array',
+                'items': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'number'},
+                }}],
+            'description': 'Samples.'},
+    },
+}
+_output_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Confidence scores per (sample, class) combination',
+    'laleType': 'Any',
+    'XXX TODO XXX': 'array, shape=(n_samples,) if n_classes == 2 else (n_samples, n_classes)',
+}
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.LogisticRegression#sklearn-linear_model-logisticregression',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -228,9 +261,10 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema},
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LogisticRegressionImpl, _combined_schemas)
 LogisticRegression = lale.operators.make_operator(LogisticRegressionImpl, _combined_schemas)
 

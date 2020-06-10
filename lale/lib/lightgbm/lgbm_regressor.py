@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import lightgbm.sklearn
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class LGBMRegressorImpl():
@@ -46,23 +46,23 @@ class LGBMRegressorImpl():
             'silent': silent,
             'importance_type': importance_type
         }
-        self._sklearn_model = lightgbm.sklearn.LGBMRegressor(**self._hyperparams)
+        self._wrapped_model = lightgbm.sklearn.LGBMRegressor(**self._hyperparams)
 
     def fit(self, X, y=None, **fit_params):
         try:
             if fit_params is None:
-                self._sklearn_model.fit(X, y)
+                self._wrapped_model.fit(X, y)
             else:
-                self._sklearn_model.fit(X, y, **fit_params)
+                self._wrapped_model.fit(X, y, **fit_params)
         except Exception as e:
             raise RuntimeError(str(self._hyperparams)) from e
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -382,6 +382,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LGBMRegressorImpl, _combined_schemas)
+
 LGBMRegressor = lale.operators.make_operator(LGBMRegressorImpl, _combined_schemas)

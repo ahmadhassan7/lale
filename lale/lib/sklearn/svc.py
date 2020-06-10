@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import sklearn.svm.classes
-import lale.helpers
+import lale.docstrings
 import lale.operators
-
 
 class SVCImpl():
 
@@ -36,18 +34,20 @@ class SVCImpl():
             'max_iter': max_iter,
             'decision_function_shape': decision_function_shape,
             'random_state': random_state}
-        self._sklearn_model = sklearn.svm.classes.SVC(**self._hyperparams)
+        self._wrapped_model = sklearn.svm.classes.SVC(**self._hyperparams)
 
     def fit(self, X, y=None, sample_weight=None):
-        self._sklearn_model.fit(X, y, sample_weight)
+        self._wrapped_model.fit(X, y, sample_weight)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -137,18 +137,6 @@ _hyperparams_schema = {
                 'default': None,
                 'description': 'The seed of the pseudo random number generator used when shuffling'},
         }},
-        {'description': 'gamma only used when kernel is ‘rbf’, ‘poly’ or ‘sigmoid’',
-         'anyOf': [{
-             'type': 'object',
-             'properties': {
-                 'kernel': {
-                     'enum': ['rbf', 'poly', 'sigmoid']},
-             }}, {
-             'type': 'object',
-             'properties': {
-                 'gamma': {
-                     'enum': ['auto_deprecated']}, #this needs to be the default value of gamma, changes with sklearn versions.
-             }}]},
         {'description': 'coef0 only significant in kernel ‘poly’ and ‘sigmoid’.',
          'anyOf': [{
              'type': 'object',
@@ -175,7 +163,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values (class labels in classification, real numbers in regression)'},
         'sample_weight': {
             'anyOf': [{
@@ -204,7 +193,8 @@ _output_predict_schema = {
     'description': 'Class labels for samples in X.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -221,13 +211,36 @@ _output_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'type': 'array',
     'items': {'type': 'array', 'items': {'type': 'number'}},
-    'description': 'Returns the probability of the sample for each class in the model.'
+    'description': 'Returns the probability of the sample for each class in the model.'}
 
-}
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html',
+    'description': """`Support Vector Classification`_ from scikit-learn.
+
+.. _`Support Vector Classification`: https://scikit-learn.org/0.20/modules/generated/sklearn.svm.SVC.html#sklearn-svm-svc
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.svc.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -239,8 +252,11 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema}}
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SVCImpl, _combined_schemas)
+
 SVC = lale.operators.make_operator(SVCImpl, _combined_schemas)

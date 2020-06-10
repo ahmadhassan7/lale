@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import lightgbm.sklearn
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class LGBMClassifierImpl():
@@ -46,23 +46,23 @@ class LGBMClassifierImpl():
             'silent': silent,
             'importance_type': importance_type
         }
-        self._sklearn_model = lightgbm.sklearn.LGBMClassifier(**self._hyperparams)
+        self._wrapped_model = lightgbm.sklearn.LGBMClassifier(**self._hyperparams)
 
     def fit(self, X, y=None, **fit_params):
         try:
             if fit_params is None:
-                self._sklearn_model.fit(X, y)
+                self._wrapped_model.fit(X, y)
             else:
-                self._sklearn_model.fit(X, y, **fit_params)
+                self._wrapped_model.fit(X, y, **fit_params)
         except Exception as e:
             raise RuntimeError(str(self._hyperparams)) from e
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -187,33 +187,25 @@ _hyperparams_schema = {
                 'default': 'split',
                 'description': 'The type of feature importance to be filled into feature_importances_.'}
         }},
-        { 'description':
-            'This second sub-object lists cross-argument constraints, used '
-            'to check or search conditional hyperparameters.',
-        'allOf': [
-            { 'description':
-                'boosting_type `rf` needs bagging (which means subsample_freq > 0 and subsample < 1.0)',
-            'anyOf': [
-                { 'type': 'object',
-                'properties': {
-                    'boosting_type': {'not': {'enum': ['rf']}}}},
-                {'allOf':[ {'type': 'object',
-                    'properties': {'subsample_freq': {'not': {'enum': [0]}}}},
-                     {'type': 'object',
-                    'properties': {'subsample': {'not': {'enum': [1.0]}}}}]}]},
-            { 'description':
-                'boosting_type `goss` can not use bagging (which means subsample_freq = 0 and subsample = 1.0)',
-            'anyOf': [
-                { 'type': 'object',
-                'properties': {
-                    'boosting_type': {'not': {'enum': ['goss']}}}},
-                {'allOf':[ {'type': 'object',
-                    'properties': {'subsample_freq': {'enum': [0]}}},
-                     {'type': 'object',
-                    'properties': {'subsample': {'enum': [1.0]}}}]}]}                    
-                    ]
-        }]
-}
+    {   'description': 'boosting_type `rf` needs bagging (which means subsample_freq > 0 and subsample < 1.0)',
+        'anyOf': [
+            { 'type': 'object',
+            'properties': {
+                'boosting_type': {'not': {'enum': ['rf']}}}},
+            {'allOf':[ {'type': 'object',
+                'properties': {'subsample_freq': {'not': {'enum': [0]}}}},
+                 {'type': 'object',
+                'properties': {'subsample': {'not': {'enum': [1.0]}}}}]}]},
+    {   'description': 'boosting_type `goss` can not use bagging (which means subsample_freq = 0 and subsample = 1.0)',
+        'anyOf': [
+            { 'type': 'object',
+            'properties': {
+                'boosting_type': {'not': {'enum': ['goss']}}}},
+            {'allOf':[ {'type': 'object',
+                'properties': {'subsample_freq': {'enum': [0]}}},
+                 {'type': 'object',
+                'properties': {'subsample': {'enum': [1.0]}}}]}]}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Build a lightgbm model from the training set (X, y).',
@@ -229,12 +221,12 @@ _input_fit_schema = {
             },
             'description': 'The input samples. Internally, it will be converted to'},
         'y': {
-            'type': 'array',
-            'items': {
-                'anyOf':[
-                {'type': 'number'},
-                {'type': 'string'}]},
-            'description': 'Target values (strings or integers in classification, real numbers'},
+            'anyOf': [
+                {'type': 'array', 'items': {'type': 'number'}},
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
+            'description': 'Labels',
+        },
         'sample_weight': {
             'anyOf': [{
                 'type': 'array',
@@ -354,15 +346,15 @@ _input_predict_schema = {
             'description': 'Whether to predict feature contributions.'},
     },
 }
+
 _output_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Return the predicted value for each sample.',
-    'type': 'array',
-    'items': {
-        'anyOf':[
-        {'type': 'number'},
-        {'type': 'string'}]},
-}
+    'anyOf': [
+        {'type': 'array', 'items': {'type': 'number'}},
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
+
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Return the predicted probability for each class for each sample.',
@@ -422,6 +414,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LGBMClassifierImpl, _combined_schemas)
+
 LGBMClassifier = lale.operators.make_operator(LGBMClassifierImpl, _combined_schemas)

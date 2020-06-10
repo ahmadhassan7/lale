@@ -1,7 +1,8 @@
 
-from sklearn.naive_bayes import BernoulliNB as SKLModel
+from sklearn.naive_bayes import BernoulliNB as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class BernoulliNBImpl():
@@ -12,20 +13,20 @@ class BernoulliNBImpl():
             'binarize': binarize,
             'fit_prior': fit_prior,
             'class_prior': class_prior}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for BernoulliNB    Naive Bayes classifier for multivariate Bernoulli models.',
@@ -143,6 +144,7 @@ _output_predict_proba_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.naive_bayes.BernoulliNB#sklearn-naive_bayes-bernoullinb',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -156,7 +158,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(BernoulliNBImpl, _combined_schemas)
 BernoulliNB = lale.operators.make_operator(BernoulliNBImpl, _combined_schemas)
 

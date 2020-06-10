@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from sklearn.ensemble.bagging import BaggingClassifier as SKLModel
-import lale.helpers
 import lale.operators
+import lale.docstrings
 from lale.sklearn_compat import make_sklearn_compat
 
 class BaggingClassifierImpl():
@@ -31,20 +31,23 @@ class BaggingClassifierImpl():
             'n_jobs': n_jobs,
             'random_state': random_state,
             'verbose': verbose}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -192,10 +195,34 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingClassifier.html',
+    'description': """`Bagging classifier`_ from scikit-learn for bagging ensemble.
+
+.. _`Bagging classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.BaggingClassifier.html#sklearn-ensemble-baggingclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.bagging_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -207,8 +234,11 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema}}
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(BaggingClassifierImpl, _combined_schemas)
+
 BaggingClassifier = lale.operators.make_operator(BaggingClassifierImpl, _combined_schemas)

@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
+import lale.docstrings
 import lale.operators
-import pandas as pd
 
 class IdentityWrapperImpl():
     # This should be equivalent to:
@@ -59,7 +58,7 @@ _hyperparams_schema = {
     {   'description': 'This first object lists all constructor arguments with their types, but omits constraints for conditional hyperparameters',
         'type': 'object',
         'additionalProperties': False,
-        'relevantToOptimizer': ['order', 'op1', 'op2'],
+        'relevantToOptimizer': ['op'],
         'properties': {
             'op': {
                 'laleType': 'operator'
@@ -110,7 +109,6 @@ _combined_schemas = {
         'input_transform': _input_predict_transform_schema,
         'output_transform': _output_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(IdentityWrapperImpl, _combined_schemas)
 
 IdentityWrapper = lale.operators.make_operator(IdentityWrapperImpl, _combined_schemas)

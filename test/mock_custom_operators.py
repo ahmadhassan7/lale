@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lale.operators import make_operator
+import lale.operators
 import numpy as np
 
 class IncreaseRowsImpl():
@@ -57,8 +57,7 @@ _input_transform_schema = {
       'items': {'type': 'array', 'items': {'type': 'number'}}},
     'y': {}}}
 
-_output_transform_schema = {
-  '$schema': 'http://json-schema.org/draft-04/schema#'}
+_output_transform_schema = {}
 #,
 #  'type': 'array',
 #  'items': {'type': 'number'}
@@ -81,7 +80,7 @@ _combined_schemas = {
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['transformer'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparam_schema,
@@ -89,7 +88,7 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-IncreaseRows = make_operator(IncreaseRowsImpl, _combined_schemas)
+IncreaseRows = lale.operators.make_operator(IncreaseRowsImpl, _combined_schemas)
 
 import sklearn.linear_model
 
@@ -101,13 +100,13 @@ class MyLRImpl:
         
     def fit(self, X, y):
         result = MyLRImpl(self.penalty, self.solver, self.C)
-        result._sklearn_model = sklearn.linear_model.LogisticRegression(
+        result._wrapped_model = sklearn.linear_model.LogisticRegression(
             penalty = self.penalty, solver=self.solver, C = self.C)
-        result._sklearn_model.fit(X, y)
+        result._wrapped_model.fit(X, y)
         return result
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
 _input_fit_schema = {
   'type': 'object',
@@ -177,13 +176,14 @@ _hyperparams_schema = {
 _combined_schemas = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
   'type': 'object',
+  'tags': {
+    'pre': [],
+    'op': ['estimator', 'classifier'],
+    'post': []},
   'properties': {
     'input_fit': _input_fit_schema,
     'input_predict': _input_predict_schema,
     'output_predict': _output_predict_schema,
     'hyperparams': _hyperparams_schema } }
-
-import lale.helpers
-lale.helpers.validate_is_schema(_combined_schemas)
 
 MyLR = lale.operators.make_operator(MyLRImpl, _combined_schemas)

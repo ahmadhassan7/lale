@@ -1,7 +1,8 @@
 
-from sklearn.manifold.locally_linear import LocallyLinearEmbedding as SKLModel
+from sklearn.manifold.locally_linear import LocallyLinearEmbedding as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LocallyLinearEmbeddingImpl():
@@ -20,17 +21,17 @@ class LocallyLinearEmbeddingImpl():
             'neighbors_algorithm': neighbors_algorithm,
             'random_state': random_state,
             'n_jobs': n_jobs}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for LocallyLinearEmbedding    Locally Linear Embedding',
@@ -59,7 +60,7 @@ _hyperparams_schema = {
                 'default': 0.001,
                 'description': 'regularization constant, multiplies the trace of the local covariance matrix of the distances.'},
             'eigen_solver': {
-                'enum': ['arpack', 'auto', 'dense'],
+                'enum': ['auto', 'arpack', 'dense'],
                 'default': 'auto',
                 'description': 'auto : algorithm will attempt to choose the best method for input data  arpack : use arnoldi iteration in shift-invert mode'},
             'tol': {
@@ -90,7 +91,7 @@ _hyperparams_schema = {
                 'default': 1e-12,
                 'description': 'Tolerance for modified LLE method'},
             'neighbors_algorithm': {
-                'enum': ['auto', 'ball_tree', 'brute', 'kd_tree'],
+                'enum': ['auto', 'brute', 'kd_tree', 'ball_tree'],
                 'default': 'auto',
                 'description': 'algorithm to use for nearest neighbors search, passed to neighbors.NearestNeighbors instance'},
             'random_state': {
@@ -178,6 +179,7 @@ _output_transform_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.manifold.LocallyLinearEmbedding#sklearn-manifold-locallylinearembedding',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -189,7 +191,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LocallyLinearEmbeddingImpl, _combined_schemas)
 LocallyLinearEmbedding = lale.operators.make_operator(LocallyLinearEmbeddingImpl, _combined_schemas)
 

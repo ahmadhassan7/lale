@@ -13,20 +13,19 @@
 # limitations under the License.
 
 import lale.docstrings
-import lale.helpers
 import lale.operators
 import sklearn.compose
 
 class ColumnTransformerImpl:
     def __init__(self, **hyperparams):
-        self._sklearn_model = sklearn.compose.ColumnTransformer(**hyperparams)
+        self._wrapped_model = sklearn.compose.ColumnTransformer(**hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        result = self._sklearn_model.transform(X)
+        result = self._wrapped_model.transform(X)
         return result
 
 _hyperparams_schema = {
@@ -139,9 +138,9 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': """ColumnTransformer_ applies transformers to columns of an array or pandas DataFrame.
+    'description': """ColumnTransformer_ from scikit-learn applies transformers to columns of an array or pandas DataFrame.
 
-.. _ColumnTransformer: https://scikit-learn.org/0.20/modules/generated/sklearn.compose.ColumnTransformer.html
+.. _ColumnTransformer: https://scikit-learn.org/0.20/modules/generated/sklearn.compose.ColumnTransformer.html#sklearn-compose-columntransformer
 """,
     'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.column_transformer.html',
     'type': 'object',
@@ -154,9 +153,6 @@ _combined_schemas = {
         'input_fit': _input_fit_schema,
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
 
 lale.docstrings.set_docstrings(ColumnTransformerImpl, _combined_schemas)
 

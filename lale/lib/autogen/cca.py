@@ -1,7 +1,8 @@
 
-from sklearn.cross_decomposition.cca_ import CCA as SKLModel
+from sklearn.cross_decomposition.cca_ import CCA as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class CCAImpl():
@@ -13,20 +14,20 @@ class CCAImpl():
             'max_iter': max_iter,
             'tol': tol,
             'copy': copy}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for CCA    CCA Canonical Correlation Analysis.',
@@ -125,7 +126,7 @@ _output_transform_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Apply the dimension reduction learned on the train data.',
     'laleType': 'Any',
-    'XXX TODO XXX': '',
+    'XXX TODO XXX': 'x_scores if Y is not given, (x_scores, y_scores) otherwise.',
 }
 _input_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -150,14 +151,16 @@ _input_predict_schema = {
 _output_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Apply the dimension reduction learned on the train data.',
+    'laleType': 'Any',
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.cross_decomposition.CCA#sklearn-cross_decomposition-cca',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['transformer'],
+        'op': ['transformer', 'estimator'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -167,7 +170,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(CCAImpl, _combined_schemas)
 CCA = lale.operators.make_operator(CCAImpl, _combined_schemas)
 

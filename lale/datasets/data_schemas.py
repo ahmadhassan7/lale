@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
+import lale.type_checking
 import numpy as np
+import os
 import pandas as pd
 import scipy.sparse
 try:
@@ -21,6 +22,7 @@ try:
     torch_installed=True
 except ImportError:
     torch_installed=False
+
 # See instructions for subclassing numpy ndarray:
 # https://docs.scipy.org/doc/numpy/user/basics.subclassing.html
 class NDArrayWithSchema(np.ndarray):
@@ -76,6 +78,9 @@ def is_list_tensor(obj):
     return False
 
 def add_schema(obj, schema=None, raise_on_failure=False, recalc=False):
+    disable_schema = os.environ.get("LALE_DISABLE_SCHEMA_VALIDATION", None)
+    if disable_schema is not None and disable_schema.lower()=='true':
+        return obj
     if obj is None:
         return None
     if isinstance(obj, NDArrayWithSchema):
@@ -103,13 +108,27 @@ def add_schema(obj, schema=None, raise_on_failure=False, recalc=False):
         if schema is None:
             result.json_schema = to_schema(obj)
         else:
-            lale.helpers.validate_is_schema(schema)
+            lale.type_checking.validate_is_schema(schema)
             result.json_schema = schema
+    return result
+
+def strip_schema(obj):
+    if isinstance(obj, NDArrayWithSchema):
+        result = np.array(obj)
+        assert type(result) == np.ndarray
+    elif isinstance(obj, SeriesWithSchema):
+        result = pd.Series(obj)
+        assert type(result) == pd.Series
+    elif isinstance(obj, DataFrameWithSchema):
+        result = pd.DataFrame(obj)
+        assert type(result) == pd.DataFrame
+    else:
+        result = obj
     return result
 
 def dtype_to_schema(typ):
     result = None
-    if typ is bool or typ is np.bool_:
+    if typ is bool or np.issubdtype(typ, np.bool_):
         result = {'type': 'boolean'}
     elif np.issubdtype(typ, np.unsignedinteger):
         result = {'type': 'integer', 'minimum': 0}
@@ -131,7 +150,7 @@ def dtype_to_schema(typ):
             assert False, f'unexpected dtype {typ}'
     else:
         assert False, f'unexpected non-dtype {typ}'
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result
 
 def shape_and_dtype_to_schema(shape, dtype):
@@ -142,7 +161,7 @@ def shape_and_dtype_to_schema(shape, dtype):
             'minItems': dim,
             'maxItems': dim,
             'items': result}
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result
 
 def ndarray_to_schema(array):
@@ -173,7 +192,7 @@ def dataframe_to_schema(df):
             'minItems': n_columns,
             'maxItems': n_columns,
             'items': items}}
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result
 
 def series_to_schema(series):
@@ -188,7 +207,7 @@ def series_to_schema(series):
         'items': {
             'description': str(series.name),
             **dtype_to_schema(series.dtype)}}
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result
 
 def torch_tensor_to_schema(tensor):
@@ -248,7 +267,7 @@ or with
             'minItems': n_columns,
             'maxItems': n_columns,
             'items': items}}
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result
 
 def to_schema(obj):
@@ -266,9 +285,9 @@ def to_schema(obj):
         result = torch_tensor_to_schema(obj)
     elif is_liac_arff(obj):
         result = liac_arff_to_schema(obj)
-    elif lale.helpers.is_schema(obj):
+    elif lale.type_checking.is_schema(obj):
         result = obj
     else:
         raise ValueError(f'to_schema(obj), type {type(obj)}, value {obj}')
-    lale.helpers.validate_is_schema(result)
+    lale.type_checking.validate_is_schema(result)
     return result

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.preprocessing.data
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class PolynomialFeaturesImpl():
@@ -23,14 +23,14 @@ class PolynomialFeaturesImpl():
             'degree': degree,
             'interaction_only': interaction_only,
             'include_bias': include_bias}
-        self._sklearn_model = sklearn.preprocessing.data.PolynomialFeatures(**self._hyperparams)
+        self._wrapped_model = sklearn.preprocessing.data.PolynomialFeatures(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Generate polynomial and interaction features.',
@@ -102,8 +102,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.PolynomialFeatures.html',
+    'description': """`Polynomial features`_ transformer from scikit-learn.
+
+.. _`Polynomial features`: https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.PolynomialFeatures.html#sklearn-preprocessing-polynomialfeatures
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.polynomial_features.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -115,6 +118,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(PolynomialFeaturesImpl, _combined_schemas)
+
 PolynomialFeatures = lale.operators.make_operator(PolynomialFeaturesImpl, _combined_schemas)

@@ -14,7 +14,7 @@
 
 
 import sklearn.impute
-import lale.helpers
+import lale.docstrings
 import lale.operators
 import numpy as np
 
@@ -28,14 +28,14 @@ class SimpleImputerImpl():
             'fill_value': fill_value,
             'verbose': verbose,
             'copy': copy}
-        self._sklearn_model = sklearn.impute.SimpleImputer(**self._hyperparams)
+        self._wrapped_model = sklearn.impute.SimpleImputer(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
     def transform_schema(self, s_X):
         return s_X
@@ -76,20 +76,8 @@ _hyperparams_schema = {
                 'type': 'boolean',
                 'default': True,
                 'description': 'If True, a copy of X will be created. If False, imputation will'},
-        }},
-        {'description': "fill_value, only used when strategy='constant'",
-         'anyOf': [{
-             'type': 'object',
-             'properties': {
-                 'strategy': {
-                     'enum': ['constant']},
-             }}, {
-             'type': 'object',
-             'properties': {
-                 'fill_value': {
-                     'enum': [None]},
-             }}]}]
-}
+        }}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Fit the imputer on X.',
@@ -136,8 +124,11 @@ _output_transform_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.impute.SimpleImputer.html',
+    'description': """`Simple imputer`_ transformer from scikit-learn for completing missing values.
+
+.. _`Simple imputer`: https://scikit-learn.org/0.20/modules/generated/sklearn.impute.SimpleImputer.html#sklearn-impute-simpleimputer
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.simple_imputer.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -149,6 +140,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SimpleImputerImpl, _combined_schemas)
+
 SimpleImputer = lale.operators.make_operator(SimpleImputerImpl, _combined_schemas)

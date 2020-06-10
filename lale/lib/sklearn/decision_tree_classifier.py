@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.tree.tree
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 _hyperparams_schema = {
@@ -135,7 +135,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'The target values (class labels) as integers or strings.'},
         'sample_weight': {
             'anyOf': [{
@@ -187,7 +188,8 @@ _output_predict_schema = {
     'description': 'Predicted class label per sample.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -222,8 +224,11 @@ _output_predict_proba_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html',
+    'description': """`Decision tree classifier`_ from scikit-learn.
+
+.. _`Decision tree classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.tree.DecisionTreeClassifier.html#sklearn-tree-decisiontreeclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.decision_tree_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -236,9 +241,6 @@ _combined_schemas = {
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
 
 
 class DecisionTreeClassifierImpl():        
@@ -258,19 +260,21 @@ class DecisionTreeClassifierImpl():
             'min_impurity_split': min_impurity_split,
             'class_weight': class_weight,
             'presort': presort}
-        self._sklearn_model = sklearn.tree.tree.DecisionTreeClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.tree.tree.DecisionTreeClassifier(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+lale.docstrings.set_docstrings(DecisionTreeClassifierImpl, _combined_schemas)
 
 DecisionTreeClassifier = lale.operators.make_operator(DecisionTreeClassifierImpl, _combined_schemas)

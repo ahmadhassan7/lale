@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.linear_model.base
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class LinearRegressionImpl():
@@ -24,17 +24,18 @@ class LinearRegressionImpl():
             'normalize': normalize,
             'copy_X': copy_X,
             'n_jobs': n_jobs}
-        self._sklearn_model = sklearn.linear_model.base.LinearRegression(**self._hyperparams)
+        self._wrapped_model = sklearn.linear_model.base.LinearRegression(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
+
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Ordinary least squares Linear Regression.',
@@ -62,19 +63,7 @@ _hyperparams_schema = {
                     'enum': [None]}],
                 'default': None,
                 'description': 'The number of jobs to use for the computation. This will only provide'},
-        }}, {
-        'description': 'Normalize is ignored when fit_intercept is set to False.',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'fit_intercept': {
-                    'enum': [True]},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'normalize': {
-                    'enum': [False]},
-            }}]}]}
+        }}]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -144,8 +133,11 @@ _output_predict_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html',
+    'description': """`Linear regression`_ linear model from scikit-learn for classification.
+
+.. _`Linear regression`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.LinearRegression.html#sklearn-linear-model-linearregression
+""",
+  'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.linear_regression.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -157,6 +149,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LinearRegressionImpl, _combined_schemas)
+
 LinearRegression = lale.operators.make_operator(LinearRegressionImpl, _combined_schemas)

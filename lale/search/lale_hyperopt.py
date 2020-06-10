@@ -14,7 +14,6 @@
 
 from typing import Any, Dict, Iterable, List, Optional
 import os
-import logging
 import math
 import re
 
@@ -27,9 +26,6 @@ from lale.operators import Operator
 
 from hyperopt import hp
 from hyperopt.pyll import scope
-
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
 
 def search_space_to_hp_expr(space:SearchSpace, name:str):
     return SearchSpaceHPExprVisitor.run(space, name)
@@ -60,8 +56,7 @@ class SearchSpaceHPExprVisitor(Visitor):
     @classmethod
     def run(cls, space:SearchSpace, name:str):
         visitor = cls(name)
-        space_:Any = space
-        return space_.accept(visitor, name)
+        return accept(space, visitor, name)
 
     def __init__(self, name:str):
         super(SearchSpaceHPExprVisitor, self).__init__()
@@ -106,17 +101,17 @@ class SearchSpaceHPExprVisitor(Visitor):
             dist = space.distribution
 
         if space.maximum is None:
-            raise ValueError(f"maximum not specified for a number with distribution {dist} for {path}")
+            raise SearchSpaceError(path, f"maximum not specified for a number with distribution {dist}")
         max = space.getInclusiveMax()
 
         # These distributions need only a maximum
         if dist == "integer":
             if not space.discrete:
-                raise ValueError(f"integer distribution specified for a non discrete numeric type for {path}")
+                raise SearchSpaceError(path, "integer distribution specified for a non discrete numeric type")
             return hp.randint(label, max)
 
         if space.minimum is None:
-            raise ValueError(f"minimum not specified for a number with distribution {dist} for {path}")
+            raise SearchSpaceError(path, f"minimum not specified for a number with distribution {dist}")
         min = space.getInclusiveMin()
 
         if dist == "uniform":
@@ -127,7 +122,7 @@ class SearchSpaceHPExprVisitor(Visitor):
         elif dist == "loguniform":
             # for log distributions, hyperopt requires that we provide the log of the min/max
             if min <= 0:
-                raise ValueError(f"minimum of 0 specified with a {dist} distribution for {path}.  This is not allowed; please set it (possibly using minimumForOptimizer) to be positive")
+                raise SearchSpaceError(path, f"minimum of 0 specified with a {dist} distribution.  This is not allowed; please set it (possibly using minimumForOptimizer) to be positive")
             if min > 0:
                 min = math.log(min)
             if max > 0:
@@ -138,7 +133,7 @@ class SearchSpaceHPExprVisitor(Visitor):
                 return hp.loguniform(label, min, max)
 
         else:
-            raise ValueError(f"Unknown distribution type: {dist} for {path}")
+            raise SearchSpaceError(path, f"Unknown distribution type: {dist}")
 
     def array_single_expr_(self, space:SearchSpaceArray, path:str, num):
         p = _mk_label(path, num) + "_"
@@ -171,7 +166,7 @@ class SearchSpaceHPExprVisitor(Visitor):
             if e is None:
                 return None
             else:
-                ee = e.accept(self, path + "_" + key, counter=child_counter)
+                ee = accept(e, self, path + "_" + key, counter=child_counter)
                 if child_counter is None:
                     child_counter = 1
                 else:
@@ -208,7 +203,7 @@ class SearchSpaceHPExprVisitor(Visitor):
         return scope.make_nested_hyperopt(accept(op.sub_space, self, path))
 
     def visitSearchSpaceEmpty(self, op:SearchSpaceEmpty, path:str, counter=None):
-        raise NotImplementedError("The hyperopt backend can't compile an empty (sub-) search space")
+        raise SearchSpaceError(path, "The hyperopt backend can't compile an empty (sub-) search space")
 
 class SearchSpaceHPStrVisitor(Visitor):
     pgo_dict:Dict[str, FrequencyDistribution]
@@ -221,9 +216,8 @@ class SearchSpaceHPStrVisitor(Visitor):
     @classmethod
     def run(cls, space:SearchSpace, name:str, counter=None, useCounter=True):
         visitor = cls(name)
-        space_:Any = space
         ret:str = ""
-        body = space_.accept(visitor, name, counter=counter, useCounter=useCounter)
+        body = accept(space, visitor, name, counter=counter, useCounter=useCounter)
         if visitor.pgo_header is not None:
             ret += visitor.pgo_header
         if visitor.nested_header is not None:
@@ -295,18 +289,18 @@ class SearchSpaceHPStrVisitor(Visitor):
             dist = space.distribution
 
         if space.maximum is None:
-            raise ValueError(f"maximum not specified for a number with distribution {dist} for {path}")
+            SearchSpaceError(path, f"maximum not specified for a number with distribution {dist}")
         max = space.getInclusiveMax()
 
         # These distributions need only a maximum
         if dist == "integer":
             if not space.discrete:
-                raise ValueError(f"integer distribution specified for a non discrete numeric type for {path}")
+                raise SearchSpaceError(path, "integer distribution specified for a non discrete numeric type....")
 
             return f"hp.randint('{label}', {max})"
 
         if space.minimum is None:
-            raise ValueError(f"minimum not specified for a number with distribution {dist} for {path}")
+            raise SearchSpaceError(path, f"minimum not specified for a number with distribution {dist}")
         min = space.getInclusiveMin()
 
         if dist == "uniform":
@@ -317,7 +311,7 @@ class SearchSpaceHPStrVisitor(Visitor):
         elif dist == "loguniform":
             # for log distributions, hyperopt requires that we provide the log of the min/max
             if min <= 0:
-                    raise ValueError(f"minimum of 0 specified with a {dist} distribution for {path}.  This is not allowed; please set it (possibly using minimumForOptimizer) to be positive")
+                    raise SearchSpaceError(path, f"minimum of 0 specified with a {dist} distribution.  This is not allowed; please set it (possibly using minimumForOptimizer) to be positive")
             if min > 0:
                 min = math.log(min)
             if max > 0:
@@ -328,7 +322,7 @@ class SearchSpaceHPStrVisitor(Visitor):
             else:
                 return f"hp.loguniform('{label}', {min}, {max})"
         else:
-            raise ValueError(f"Unknown distribution type: {dist} for {path}")
+            raise SearchSpaceError(path, f"Unknown distribution type: {dist}")
 
     def array_single_str_(self, space:SearchSpaceArray, path:str, num, useCounter=True)->str:
         p = _mk_label(path, num, useCounter=useCounter) + "_"
@@ -365,7 +359,7 @@ class SearchSpaceHPStrVisitor(Visitor):
             if x is None:
                 return "None"
             else:
-                s = s = x.accept(self, path + "_" + key, child_counter, useCounter=useCounter)
+                s = accept(x, self, path + "_" + key, child_counter, useCounter=useCounter)
                 if child_counter is None:
                     child_counter = 1
                 else:

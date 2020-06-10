@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import lale.docstrings
-import lale.helpers
 import lale.operators
 import sklearn.linear_model
 
@@ -31,7 +30,8 @@ _input_fit_schema = {
       'description': 'Target class labels; the array is over samples.',
         'anyOf': [
             {'type': 'array', 'items': {'type': 'number'}},
-            {'type': 'array', 'items': {'type': 'string'}}]}}}
+            {'type': 'array', 'items': {'type': 'string'}},
+            {'type': 'array', 'items': {'type': 'boolean'}}]}}}
 
 _input_predict_schema = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -49,7 +49,8 @@ _output_predict_schema = {
     'description': 'Predicted class label per sample.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -70,6 +71,26 @@ _output_predict_proba_schema = {
         'type': 'array',
         'items': {
             'type': 'number'}}}
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
 
 _hyperparams_schema = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -131,7 +152,7 @@ _hyperparams_schema = {
             'Append a constant feature with constant value '
             'intercept_scaling to the instance vector.',
           'type': 'number',
-          'distribution': 'loguniform',
+          'distribution': 'uniform',
           'minimum': 0.0,
           'exclusiveMinimum': True,
           'default': 1.0},
@@ -159,7 +180,7 @@ _hyperparams_schema = {
           'description':
             'Maximum number of iterations for solvers to converge.',
           'type': 'integer',
-          'distribution': 'loguniform',
+          'distribution': 'uniform',
           'minimum': 1,
           'default': 100},
         'multi_class': {
@@ -210,25 +231,6 @@ _hyperparams_schema = {
               'penalty': {'enum': ['l2']},
               'solver': {'enum': ['liblinear']}}}]},
       { 'description':
-          'Setting intercept_scaling is useful only when the solver is '
-          'liblinear and fit_intercept is true.',
-        'anyOf': [
-          { 'type': 'object',
-            'properties': {'intercept_scaling': {'enum': [1.0]}}},
-          { 'type': 'object',
-            'properties': {
-              'fit_intercept': {'enum': [True]},
-              'solver': {'enum': ['liblinear']}}}]},
-      { 'description':
-          'Setting max_iter is only useful for the newton-cg, sag, '
-          'lbfgs solvers.',
-        'anyOf': [
-          { 'type': 'object',
-            'properties': {'max_iter': {'enum': [100]}}},
-          { 'type': 'object',
-            'properties': {
-              'solver': {'enum': ['newton-cg', 'sag', 'lbfgs']}}}]},
-      { 'description':
           'The multi_class multinomial option is unavailable when the '
           'solver is liblinear.',
         'anyOf': [
@@ -241,9 +243,9 @@ _hyperparams_schema = {
 
 _combined_schemas = {
   '$schema': 'http://json-schema.org/draft-04/schema#',
-  'description': """`Logistic regression`_ linear model for classification.
+  'description': """`Logistic regression`_ linear model from scikit-learn for classification.
 
-.. _`Logistic regression`: https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
+.. _`Logistic regression`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn-linear-model-logisticregression
 """,
   'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.logistic_regression.html',
   'type': 'object',
@@ -257,29 +259,32 @@ _combined_schemas = {
     'input_predict': _input_predict_schema,
     'output_predict': _output_predict_schema,
     'input_predict_proba': _input_predict_proba_schema,
-    'output_predict_proba': _output_predict_proba_schema}}
-
-if __name__ == "__main__":
-    lale.helpers.validate_is_schema(_combined_schemas)
+    'output_predict_proba': _output_predict_proba_schema,
+    'input_decision_function': _input_decision_function_schema,
+    'output_decision_function': _output_decision_function_schema,
+}}
 
 class LogisticRegressionImpl:
     def __init__(self, **hyperparams):
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.linear_model.LogisticRegression(
+        self._wrapped_model = sklearn.linear_model.LogisticRegression(
             **self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 lale.docstrings.set_docstrings(LogisticRegressionImpl, _combined_schemas)
 

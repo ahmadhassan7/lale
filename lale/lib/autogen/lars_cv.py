@@ -1,7 +1,8 @@
 
-from sklearn.linear_model.least_angle import LarsCV as SKLModel
+from sklearn.linear_model.least_angle import LarsCV as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LarsCVImpl():
@@ -19,17 +20,17 @@ class LarsCVImpl():
             'eps': eps,
             'copy_X': copy_X,
             'positive': positive}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for LarsCV    Cross-validated Least Angle Regression model.',
@@ -96,7 +97,7 @@ _hyperparams_schema = {
                 'type': 'number',
                 'minimumForOptimizer': 0.001,
                 'maximumForOptimizer': 0.1,
-                'distribution': 'uniform',
+                'distribution': 'loguniform',
                 'default': 2.220446049250313e-16,
                 'description': 'The machine-precision regularization in the computation of the Cholesky diagonal factors'},
             'copy_X': {
@@ -163,6 +164,7 @@ _output_predict_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.LarsCV#sklearn-linear_model-larscv',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -174,7 +176,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LarsCVImpl, _combined_schemas)
 LarsCV = lale.operators.make_operator(LarsCVImpl, _combined_schemas)
 

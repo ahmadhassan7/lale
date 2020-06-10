@@ -24,9 +24,9 @@ import pprint
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
-import lale.helpers
 import lale.json_operator
 import lale.operators
+import lale.type_checking
 
 JSON_TYPE = Dict[str, Any]
 
@@ -77,7 +77,11 @@ def hyperparams_to_string(hps: JSON_TYPE, steps:Optional[Dict[str,str]]=None, ge
             if gen is not None:
                 gen.imports.append('import numpy as np')
             return f'np.{value.__repr__()}'
-        elif inspect.isclass(value):
+        elif isinstance(value, np.ufunc):
+            if gen is not None:
+                gen.imports.append('import numpy as np')
+            return f'np.{value.__name__}'
+        elif hasattr(value, '__module__') and hasattr(value, '__name__'):
             modules = {'numpy': 'np', 'pandas': 'pd'}
             module = modules.get(value.__module__, value.__module__)
             if gen is not None:
@@ -86,6 +90,14 @@ def hyperparams_to_string(hps: JSON_TYPE, steps:Optional[Dict[str,str]]=None, ge
                 else:
                     gen.imports.append(f'import {value.__module__} as {module}')
             return f'{module}.{value.__name__}'
+        elif hasattr(value, 'get_params'):
+            module = value.__module__
+            name = value.__class__.__name__
+            if gen is not None:
+                gen.imports.append(f'import {module}')
+            printed = pprint.pformat(value, width=10000, compact=True)
+            compacted = printed.replace('\n', ' ')
+            return f'{module}.{compacted}'
         else:
             return pprint.pformat(value, width=10000, compact=True)
     strings = [f'{k}={value_to_string(v)}' for k, v in hps.items()]
@@ -375,7 +387,7 @@ def _operator_jsn_to_string(jsn: JSON_TYPE, show_imports: bool, combinators: boo
         result = '\n'.join(gen.assigns)
     return result
 
-def schema_to_string(schema: JSON_TYPE) -> str:
+def json_to_string(schema: JSON_TYPE) -> str:
     s1 = json.dumps(schema)
     s2 = ast.parse(s1)
     s3 = astunparse.unparse(s2).strip()
@@ -391,8 +403,8 @@ def schema_to_string(schema: JSON_TYPE) -> str:
     return s8
 
 def to_string(arg: Union[JSON_TYPE, 'lale.operators.Operator'], show_imports:bool=True, combinators:bool=True, call_depth:int=1) -> str:
-    if lale.helpers.is_schema(arg):
-        return schema_to_string(cast(JSON_TYPE, arg))
+    if lale.type_checking.is_schema(arg):
+        return json_to_string(cast(JSON_TYPE, arg))
     elif isinstance(arg, lale.operators.Operator):
         jsn = lale.json_operator.to_json(arg, call_depth=call_depth+1)
         return _operator_jsn_to_string(jsn, show_imports, combinators)

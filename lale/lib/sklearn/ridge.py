@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import sklearn.linear_model.ridge
-import lale.helpers
 import lale.operators
 
 class RidgeImpl():
@@ -28,17 +27,17 @@ class RidgeImpl():
             'tol': tol,
             'solver': solver,
             'random_state': random_state}
-        self._sklearn_model = sklearn.linear_model.ridge.Ridge(**self._hyperparams)
+        self._wrapped_model = sklearn.linear_model.ridge.Ridge(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -104,42 +103,7 @@ _hyperparams_schema = {
                     'enum': [None]}],
                 'default': None,
                 'description': 'The seed of the pseudo random number generator to use when shuffling'},
-        }}, {
-        'description': 'Normalize is ignored when fit_intercept is set to False.',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'fit_intercept': {
-                    'enum': [True]},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'normalize': {
-                    'enum': [False]},
-            }}]},
-        {
-        'description': 'random_state is used when solver == ‘sag’',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'solver': {'enum': ['sag']},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'random_state': {
-                    'enum': [None]},
-            }}]},
-        {'description': 'Maximum number of iterations for conjugate gradient solver',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'solver': {'enum': ['sparse_cg', 'lsqr', 'sag', 'saga']},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'max_iter': {
-                    'enum': [None]},
-            }}]}]}
+        }}]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -199,14 +163,23 @@ _input_predict_schema = {
 _output_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Returns predicted values.',
-    'type': 'array',
-    'items': {
-        'type': 'number'},
-}
+    'anyOf': [{
+        'type': 'array',
+        'items': {'type': 'number'}}, {#There was a case where Ridge returned 2-d predictions for a single target.
+        'type': 'array',
+        'items': {
+            'type': 'array',
+            'items': {
+                'type': 'number'},
+        }}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html',
+    'description': """`Ridge`_ regression estimator from scikit-learn.
+
+.. _`Ridge`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.Ridge.html#sklearn-linear-model-ridge
+""",
+  'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.ridge.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -218,6 +191,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RidgeImpl, _combined_schemas)
+
 Ridge = lale.operators.make_operator(RidgeImpl, _combined_schemas)

@@ -1,7 +1,8 @@
 
-from sklearn.linear_model.stochastic_gradient import SGDRegressor as SKLModel
+from sklearn.linear_model.stochastic_gradient import SGDRegressor as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class SGDRegressorImpl():
@@ -28,17 +29,17 @@ class SGDRegressorImpl():
             'warm_start': warm_start,
             'average': average,
             'n_iter': n_iter}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for SGDRegressor    Linear model fitted by minimizing a regularized empirical loss with SGD',
@@ -120,7 +121,7 @@ _hyperparams_schema = {
                 'type': 'number',
                 'minimumForOptimizer': 0.01,
                 'maximumForOptimizer': 1.0,
-                'distribution': 'uniform',
+                'distribution': 'loguniform',
                 'default': 0.01,
                 'description': "The initial learning rate for the 'constant', 'invscaling' or 'adaptive' schedules"},
             'power_t': {
@@ -159,8 +160,8 @@ _hyperparams_schema = {
                 'default': None,
                 'description': 'The number of passes over the training data (aka epochs)'},
         }}, {
-        'XXX TODO XXX': 'Parameter: max_iter > only impacts the behavior in the fit method'}, {
-        'description': "epsilon, only if loss is 'huber'",
+        'XXX TODO XXX': 'Parameter: max_iter > only impacts the behavior in the fit method, and not the partial_fit'}, {
+        'description': "epsilon, only if loss is 'huber', 'epsilon_insensitive', or 'squared_epsilon_insensitive'",
         'anyOf': [{
             'type': 'object',
             'properties': {
@@ -170,7 +171,7 @@ _hyperparams_schema = {
             'type': 'object',
             'properties': {
                 'loss': {
-                    'enum': ['huber']},
+                    'enum': ['huber', 'epsilon_insensitive', 'squared_epsilon_insensitive']},
             }}]}, {
         'description': 'validation_fraction, only used if early_stopping is true',
         'anyOf': [{
@@ -243,16 +244,18 @@ _input_predict_schema = {
 _output_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Predicted target values per element in X.',
-    'laleType': 'Any',
-    'XXX TODO XXX': '',
+    'type': 'array',
+    'items': {
+        'type': 'number'},
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.SGDRegressor#sklearn-linear_model-sgdregressor',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['estimator', 'regressor'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -260,7 +263,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SGDRegressorImpl, _combined_schemas)
 SGDRegressor = lale.operators.make_operator(SGDRegressorImpl, _combined_schemas)
 

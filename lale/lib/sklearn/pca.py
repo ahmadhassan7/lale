@@ -13,21 +13,20 @@
 # limitations under the License.
 
 import lale.docstrings
-import lale.helpers
 import lale.operators
 import sklearn.decomposition
 
 class PCAImpl():
     def __init__(self, **hyperparams):
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.decomposition.PCA(**self._hyperparams)
+        self._wrapped_model = sklearn.decomposition.PCA(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -59,6 +58,7 @@ needs to be explained is greater than the specified percentage.""",
                 'default': None},
             'copy': {
                 'description': 'If false, overwrite data passed to fit.',
+                'type': 'boolean',
                 'default': True},
             'whiten': {
                 'description': """When true, multiply the components vectors by the square root of
@@ -76,10 +76,11 @@ outputs with unit component-wise variances.""",
                 'minimum': 0.0,
                 'default': 0.0},
             'iterated_power': {
-                'anyOf': [{
-                    'description': 'Number of iterations for the power method computed by svd_solver randomized.',
-                    'type': 'integer'}, {
-                    'description': 'Pick automatically.',
+                'anyOf': [
+                {   'description': 'Number of iterations for the power method computed by svd_solver randomized.',
+                    'type': 'integer',
+                    'minimum': 0},
+                {   'description': 'Pick automatically.',
                     'enum': ['auto']}],
                 'default': 'auto'},
             'random_state': {
@@ -145,18 +146,7 @@ outputs with unit component-wise variances.""",
                 'svd_solver': {
                     'enum': ['randomized']},
             }}]},
-    {   'description': 'Option random_state can be set for svd_solver arpack or randomized.',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'random_state': {
-                    'enum': [None]},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'svd_solver': {
-                    'enum': ['arpack', 'randomized']},
-            }}]}]}
+]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -171,7 +161,8 @@ _input_fit_schema = {
                 'type': 'array',
                 'items': {'type': 'number'}}},
         'y': {
-            'description': 'Target for supervised learning (ignored).'}}}
+            'description': 'Target for supervised learning (ignored).',
+            'laleType': 'Any'}}}
 
 _input_transform_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -196,9 +187,9 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': """`Principal component analysis`_ for linear dimensionality reduction.
+    'description': """`Principal component analysis`_ transformer from scikit-learn for linear dimensionality reduction.
 
-.. _`Principal component analysis`: https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html
+.. _`Principal component analysis`: https://scikit-learn.org/0.20/modules/generated/sklearn.decomposition.PCA.html#sklearn-decomposition-pca
 """,
     'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.pca.html',
     'type': 'object',
@@ -211,9 +202,6 @@ _combined_schemas = {
         'input_fit': _input_fit_schema,
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
 
 lale.docstrings.set_docstrings(PCAImpl, _combined_schemas)
 

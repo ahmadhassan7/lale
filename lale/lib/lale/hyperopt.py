@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from hyperopt import fmin, tpe, hp, STATUS_OK, STATUS_FAIL, Trials, space_eval
+from hyperopt.exceptions import AllTrialsFailed
 from lale.helpers import cross_val_score_track_trials, create_instance_from_hyperopt_search_space
 from lale.search.op2hp import hyperopt_search_space
 from lale.search.PGO import PGO
@@ -36,13 +37,15 @@ from lale.lib.sklearn import LogisticRegression
 import multiprocessing
 
 SEED=42
-logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.ERROR)
 
 class HyperoptImpl:
 
-    def __init__(self, estimator=None, max_evals=50, cv=5, handle_cv_failure=False, scoring='accuracy', best_score=0.0, max_opt_time=None, max_eval_time=None, pgo:Optional[PGO]=None, args_to_scorer=None):
+    def __init__(self, estimator=None, max_evals=50, cv=5, handle_cv_failure=False, 
+                scoring='accuracy', best_score=0.0, max_opt_time=None, max_eval_time=None, 
+                pgo:Optional[PGO]=None, show_progressbar=True, args_to_scorer=None,
+                verbose=False):
         self.max_evals = max_evals
         if estimator is None:
             self.estimator = LogisticRegression()
@@ -56,10 +59,12 @@ class HyperoptImpl:
         self._trials = Trials()
         self.max_opt_time = max_opt_time
         self.max_eval_time = max_eval_time
+        self.show_progressbar = show_progressbar
         if args_to_scorer is not None:
             self.args_to_scorer = args_to_scorer
         else:
             self.args_to_scorer = {}
+        self.verbose = verbose
 
 
     def fit(self, X_train, y_train):
@@ -106,7 +111,9 @@ class HyperoptImpl:
                 logger.warning(f"Exception caught in Hyperopt:{type(e)}, {traceback.format_exc()} with hyperparams: {params}, setting status to FAIL")
                 return_dict['status'] = STATUS_FAIL
                 return_dict['error_msg'] = f"Exception caught in Hyperopt:{type(e)}, {traceback.format_exc()} with hyperparams: {params}"
-            
+                if self.verbose:
+                    print(return_dict['error_msg'])
+
         def get_final_trained_estimator(params, X_train, y_train):
             warnings.filterwarnings("ignore")
             trainable = create_instance_from_hyperopt_search_space(self.estimator, params)
@@ -137,17 +144,18 @@ class HyperoptImpl:
                     proc_dict['status'] = STATUS_FAIL
             else:
                 proc_dict = {}
-                proc_train_test(params, X_train, y_train, proc_dict)    
+                proc_train_test(params, X_train, y_train, proc_dict)
             return proc_dict
 
         try :
-            fmin(f, self.search_space, algo=tpe.suggest, max_evals=self.max_evals, trials=self._trials, rstate=np.random.RandomState(SEED))
+            fmin(f, self.search_space, algo=tpe.suggest, max_evals=self.max_evals, trials=self._trials, rstate=np.random.RandomState(SEED),
+            show_progressbar=self.show_progressbar)
         except SystemExit :
             logger.warning('Maximum alloted optimization time exceeded. Optimization exited prematurely')
-        except ValueError:
+        except AllTrialsFailed:
             self._best_estimator = None
             if STATUS_OK not in self._trials.statuses():
-                raise ValueError('ValueError from hyperopt, none of the trials succeeded.')
+                raise ValueError('Error from hyperopt, none of the trials succeeded.')
 
         try :
             best_params = space_eval(self.search_space, self._trials.argmin)
@@ -186,6 +194,19 @@ Returns
 -------
 result : DataFrame"""
         def make_record(trial_dict):
+            try:
+                loss = trial_dict['result']['loss']
+            except BaseException:
+                loss = np.nan
+            try:
+                time = trial_dict['result']['time']
+            except BaseException:
+                time = '-'
+            try:
+                log_loss = trial_dict['result']['log_loss']
+            except BaseException:
+                log_loss = np.nan
+
             return {
                 'name': f'p{trial_dict["tid"]}',
                 'tid': trial_dict['tid'],
@@ -234,8 +255,8 @@ _hyperparams_schema = {
     {   'type': 'object',
         'required': [
             'estimator', 'max_evals', 'cv', 'handle_cv_failure',
-            'max_opt_time', 'pgo'],
-        'relevantToOptimizer': ['estimator'],
+            'max_opt_time', 'pgo', 'show_progressbar'],
+        'relevantToOptimizer': ['estimator', 'max_evals', 'cv'],
         'additionalProperties': False,
         'properties': {
             'estimator': {
@@ -262,7 +283,9 @@ If integer: number of folds in sklearn.model_selection.StratifiedKFold.
 If object with split function: generator yielding (train, test) splits
 as arrays of indices. Can use any of the iterators from
 https://scikit-learn.org/stable/modules/cross_validation.html#cross-validation-iterators.""",
-                'type': 'integer',
+                'anyOf':[
+                    {'type': 'integer'},
+                    {'laleType':'Any', 'forOptimizer':False}],
                 'minimum': 1,
                 'default': 5},
             'handle_cv_failure': {
@@ -291,15 +314,20 @@ better. Since Hyperopt solves a minimization problem, we pass
 .. _`model_evaluation`: https://scikit-learn.org/stable/modules/model_evaluation.html
 """,
                      'not': {'type': 'string'}},
-                {   'description': 'A string from sklearn.metrics.SCORERS.keys().',
+                {   'description': 'Known scorer for classification task.',
                     'enum': [
                         'accuracy', 'explained_variance', 'max_error',
                         'roc_auc', 'roc_auc_ovr', 'roc_auc_ovo',
                         'roc_auc_ovr_weighted', 'roc_auc_ovo_weighted',
                         'balanced_accuracy', 'average_precision',
-                        'neg_log_loss', 'neg_brier_score', 'r2', 'neg_mean_squared_error', 'neg_mean_absolute_error',
-                         'neg_root_mean_squared_error', 'neg_mean_squared_log_error',
-                         'neg_median_absolute_error']}],
+                        'neg_log_loss', 'neg_brier_score']},
+                {   'description': 'Known scorer for regression task.',
+                    'enum': [
+                        'r2', 'neg_mean_squared_error',
+                        'neg_mean_absolute_error',
+                        'neg_root_mean_squared_error',
+                        'neg_mean_squared_log_error',
+                        'neg_median_absolute_error']}],
                 'default': 'accuracy'},
             'best_score': {
                 'description': """The best score for the specified scorer.
@@ -329,6 +357,10 @@ where zero is the best loss.""",
                 {   'description': 'lale.search.PGO'},
                 {   'enum': [None]}],
                 'default': None},
+            'show_progressbar': {
+                'description': 'Display progress bar during optimization.',
+                'type': 'boolean',
+                'default': True},
             'args_to_scorer':{
                 'anyOf':[
                     {'type':'object'},#Python dictionary
@@ -336,7 +368,12 @@ where zero is the best loss.""",
                 'description':"""A dictionary of additional keyword arguments to pass to the scorer. 
                 Used for cases where the scorer has a signature such as ``scorer(estimator, X, y, **kwargs)``.
                 """,
-                'default':None}}}]}
+                'default':None},
+            'verbose':{
+                'description':"""Whether to print errors from each of the trials if any. 
+This is also logged using logger.warning.""",
+                'type':'boolean',
+                'default':False}}}]}
 
 _input_fit_schema = {
     'type': 'object',
@@ -374,7 +411,7 @@ Other scoring metrics:
 >>> clf = Hyperopt(estimator=lr,
 ...    scoring=make_scorer(f1_score, average='macro'), cv=3, max_evals=2)
 """,
-    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.lale.hyperopt_cv.html',
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.lale.hyperopt.html',
     'type': 'object',
     'tags': {
         'pre': [],

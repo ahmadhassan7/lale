@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
+import lale.docstrings
 import lale.operators
-import pandas as pd
 from lale.lib.lale import NoOp
 
 class BothImpl():
@@ -127,7 +126,6 @@ _combined_schemas = {
         'input_transform': _input_predict_transform_schema,
         'output_transform': _output_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(BothImpl, _combined_schemas)
 
 Both = lale.operators.make_operator(BothImpl, _combined_schemas)

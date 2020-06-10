@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from sklearn.feature_selection import RFE as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class RFEImpl():
@@ -23,14 +23,14 @@ class RFEImpl():
             'n_features_to_select': n_features_to_select,
             'step': step,
             'verbose': verbose}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -108,8 +108,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html',
+    'description': """`Recursive feature elimination`_ transformer from scikit-learn.
+
+.. _`Recursive feature elimination`: https://scikit-learn.org/0.20/modules/generated/sklearn.feature_selection.RFE.html#sklearn-feature-selection-rfe
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.rfe.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -121,7 +124,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RFEImpl, _combined_schemas)
 
 RFE = lale.operators.make_operator(RFEImpl, _combined_schemas)

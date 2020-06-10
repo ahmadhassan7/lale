@@ -1,7 +1,8 @@
 
-from sklearn.preprocessing.label import LabelBinarizer as SKLModel
+from sklearn.preprocessing.label import LabelBinarizer as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LabelBinarizerImpl():
@@ -11,17 +12,17 @@ class LabelBinarizerImpl():
             'neg_label': neg_label,
             'pos_label': pos_label,
             'sparse_output': sparse_output}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for LabelBinarizer    Binarize labels in a one-vs-all fashion',
@@ -107,6 +108,7 @@ _output_transform_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.LabelBinarizer#sklearn-preprocessing-labelbinarizer',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -118,7 +120,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LabelBinarizerImpl, _combined_schemas)
 LabelBinarizer = lale.operators.make_operator(LabelBinarizerImpl, _combined_schemas)
 

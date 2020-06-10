@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.discriminant_analysis
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class QuadraticDiscriminantAnalysisImpl():
@@ -25,17 +25,20 @@ class QuadraticDiscriminantAnalysisImpl():
             'store_covariance': store_covariance,
             'tol': tol,
             'store_covariances': store_covariances}
-        self._sklearn_model = sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis(**self._hyperparams)
+        self._wrapped_model = sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -92,7 +95,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values (integers)'},
     },
 }
@@ -115,7 +119,8 @@ _output_predict_schema = {
     'description': 'Perform classification on an array of test vectors X.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -142,10 +147,34 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis.html',
+    'description': """`Quadratic discriminant analysis`_ classifier with a quadratic decision boundary from scikit-learn.
+
+.. _`Quadratic discriminant analysis`: https://scikit-learn.org/0.20/modules/generated/sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis.html#sklearn-discriminant-analysis-quadraticdiscriminantanalysis 
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.quadratic_discriminant_analysis.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -157,8 +186,11 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema}}
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(QuadraticDiscriminantAnalysisImpl, _combined_schemas)
+
 QuadraticDiscriminantAnalysis = lale.operators.make_operator(QuadraticDiscriminantAnalysisImpl, _combined_schemas)

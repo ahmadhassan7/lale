@@ -42,6 +42,9 @@ from lale.search.lale_grid_search_cv import get_grid_search_parameter_grids
 from lale.sklearn_compat import make_sklearn_compat
 
 import lale.operators as Ops
+
+import lale.type_checking
+
 class TestClassification(unittest.TestCase):
 
     def setUp(self):
@@ -64,11 +67,10 @@ def create_function_test_classifier(clf_name):
         clf = class_()
 
         #test_schemas_are_schemas
-        from lale.helpers import validate_is_schema
-        validate_is_schema(clf.input_schema_fit())
-        validate_is_schema(clf.input_schema_predict())
-        validate_is_schema(clf.output_schema_predict())
-        validate_is_schema(clf.hyperparam_schema())
+        lale.type_checking.validate_is_schema(clf.input_schema_fit())
+        lale.type_checking.validate_is_schema(clf.input_schema_predict())
+        lale.type_checking.validate_is_schema(clf.output_schema_predict())
+        lale.type_checking.validate_is_schema(clf.hyperparam_schema())
 
         #test_init_fit_predict
         trained = clf.fit(self.X_train, self.y_train)
@@ -116,7 +118,8 @@ def create_function_test_classifier(clf_name):
     test_classifier.__name__ = 'test_{0}'.format(clf.split('.')[-1])
     return test_classifier
 
-classifiers = ['lale.lib.sklearn.RandomForestClassifier',
+classifiers = ['lale.lib.lale.BaselineClassifier',
+               'lale.lib.sklearn.RandomForestClassifier',
                'lale.lib.sklearn.DecisionTreeClassifier',
                'lale.lib.sklearn.ExtraTreesClassifier',
                'lale.lib.sklearn.GradientBoostingClassifier',
@@ -163,11 +166,10 @@ def create_function_test_regressor(clf_name):
         regr = class_()
 
         #test_schemas_are_schemas
-        from lale.helpers import validate_is_schema
-        validate_is_schema(regr.input_schema_fit())
-        validate_is_schema(regr.input_schema_predict())
-        validate_is_schema(regr.output_schema_predict())
-        validate_is_schema(regr.hyperparam_schema())
+        lale.type_checking.validate_is_schema(regr.input_schema_fit())
+        lale.type_checking.validate_is_schema(regr.input_schema_predict())
+        lale.type_checking.validate_is_schema(regr.output_schema_predict())
+        lale.type_checking.validate_is_schema(regr.hyperparam_schema())
 
         #test_init_fit_predict
         trained = regr.fit(self.X_train, self.y_train)
@@ -196,7 +198,8 @@ def create_function_test_regressor(clf_name):
     test_regressor.__name__ = 'test_{0}'.format(clf_name.split('.')[-1])
     return test_regressor
 
-regressors = ['lale.lib.sklearn.RandomForestRegressor',
+regressors = ['lale.lib.lale.BaselineRegressor',
+              'lale.lib.sklearn.RandomForestRegressor',
               'lale.lib.sklearn.DecisionTreeRegressor',
               'lale.lib.sklearn.ExtraTreesRegressor',
               'lale.lib.sklearn.GradientBoostingRegressor',
@@ -240,11 +243,10 @@ def create_function_test_feature_preprocessor(fproc_name):
             #remove the hack when this is fixed
             fproc = PCA()
         #test_schemas_are_schemas
-        from lale.helpers import validate_is_schema
-        validate_is_schema(fproc.input_schema_fit())
-        validate_is_schema(fproc.input_schema_transform())
-        validate_is_schema(fproc.output_schema_transform())
-        validate_is_schema(fproc.hyperparam_schema())
+        lale.type_checking.validate_is_schema(fproc.input_schema_fit())
+        lale.type_checking.validate_is_schema(fproc.input_schema_transform())
+        lale.type_checking.validate_is_schema(fproc.output_schema_transform())
+        lale.type_checking.validate_is_schema(fproc.hyperparam_schema())
 
         #test_init_fit_transform
         trained = fproc.fit(self.X_train, self.y_train)
@@ -283,7 +285,7 @@ feature_preprocessors = ['lale.lib.sklearn.PolynomialFeatures',
                          'lale.lib.sklearn.StandardScaler',
                          'lale.lib.sklearn.FeatureAgglomeration',
                          'lale.lib.sklearn.RobustScaler',
-                         'lale.lib.sklearn.QuantileTransformer'
+                         'lale.lib.sklearn.QuantileTransformer',
                          ]
 for fproc in feature_preprocessors:
     setattr(
@@ -459,6 +461,12 @@ class TestLogisticRegression(unittest.TestCase):
         #with self.assertWarns(DeprecationWarning):
         predicted = trainable_lr.predict_proba(iris.data)
         predicted = trained_lr.predict_proba(iris.data)
+    def test_decision_function(self):
+        import numpy as np
+        trainable_lr = LogisticRegression(n_jobs=1)
+        iris = sklearn.datasets.load_iris()
+        trained_lr = trainable_lr.fit(iris.data, iris.target, sample_weight = np.arange(len(iris.target)))
+        predicted = trained_lr.decision_function(iris.data)
 
     def test_with_sklearn_gridsearchcv(self):
         from sklearn.model_selection import GridSearchCV
@@ -632,6 +640,14 @@ class TestClone(unittest.TestCase):
         X, y = iris.data, iris.target
         vclf.fit(X, y)
 
+    def test_fit_clones_impl(self):
+        from sklearn.datasets import load_iris
+        lr_trainable = LogisticRegression()
+        iris = load_iris()
+        X, y = iris.data, iris.target
+        lr_trained = lr_trainable.fit(X, y)
+        self.assertIsNot(lr_trainable._impl, lr_trained._impl)
+
 class TestMLPClassifier(unittest.TestCase):
     def test_with_multioutput_targets(self):
         from sklearn.datasets import make_classification, load_iris
@@ -752,7 +768,9 @@ class TestVotingClassifier(unittest.TestCase):
         from sklearn.model_selection import train_test_split
         data = load_iris()
         X, y = data.data, data.target
-        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y)
+        import warnings
+        warnings.filterwarnings("ignore")
 
     def test_with_lale_classifiers(self):
         from lale.lib.sklearn import VotingClassifier
@@ -776,8 +794,18 @@ class TestVotingClassifier(unittest.TestCase):
         from lale.lib.sklearn import VotingClassifier
         from lale.lib.lale import GridSearchCV
         from sklearn.metrics import accuracy_score, make_scorer
-        clf = VotingClassifier(estimators=[('knn', KNeighborsClassifier()), ('lr', LogisticRegression())])
+        clf = VotingClassifier(estimators=[('knn', KNeighborsClassifier()), ('rc', RidgeClassifier())], voting='hard')
         trained = clf.auto_configure(self.X_train, self.y_train, GridSearchCV, lale_num_samples=1, lale_num_grids=1, cv=2, scoring=make_scorer(accuracy_score))
+
+    def test_with_observed_gridsearch(self):
+        from lale.lib.sklearn import VotingClassifier
+        from lale.lib.lale import GridSearchCV
+        from lale.lib.lale import Observing
+        from lale.lib.lale.observing import LoggingObserver
+
+        from sklearn.metrics import accuracy_score, make_scorer
+        clf = VotingClassifier(estimators=[('knn', KNeighborsClassifier()), ('rc', RidgeClassifier())], voting='hard')
+        trained = clf.auto_configure(self.X_train, self.y_train, GridSearchCV, lale_num_samples=1, lale_num_grids=1, cv=2, scoring=make_scorer(accuracy_score), observer=LoggingObserver)
 
 class TestBaggingClassifier(unittest.TestCase):
     def setUp(self):
@@ -824,3 +852,350 @@ class TestLazyImpl(unittest.TestCase):
         from lale.lib.lale import Hyperopt
         impl = Hyperopt._impl
         self.assertTrue(inspect.isclass(impl))
+
+class TestOrdinalEncoder(unittest.TestCase):
+    def setUp(self):
+        from sklearn.datasets import load_iris
+        from sklearn.model_selection import train_test_split
+        data = load_iris()
+        X, y = data.data, data.target
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+
+    def test_with_hyperopt(self):
+        from lale.lib.sklearn import OrdinalEncoder
+        X_train, y_train = self.X_train, self.y_train
+        X_test, y_test = self.X_test, self.y_test
+
+        fproc = OrdinalEncoder()
+        from lale.lib.sklearn import LogisticRegression
+        pipeline = fproc >> LogisticRegression()
+
+        #Tune the pipeline with LR using Hyperopt
+        from lale.lib.lale import Hyperopt
+        hyperopt = Hyperopt(estimator=pipeline, max_evals=1)
+        trained = hyperopt.fit(self.X_train, self.y_train)
+        predictions = trained.predict(self.X_test)
+
+    def test_inverse_transform(self):
+        from lale.lib.sklearn import OrdinalEncoder, OneHotEncoder
+        X_train, y_train = self.X_train, self.y_train
+        X_test, y_test = self.X_test, self.y_test
+
+        fproc_ohe = OneHotEncoder(handle_unknown="ignore")
+        #test_init_fit_transform
+        trained_ohe = fproc_ohe.fit(self.X_train, self.y_train)
+        transformed_X = trained_ohe.transform(self.X_test)
+        orig_X_ohe = trained_ohe._impl._wrapped_model.inverse_transform(transformed_X)
+
+        fproc_oe = OrdinalEncoder(handle_unknown="ignore")
+        #test_init_fit_transform
+        trained_oe = fproc_oe.fit(self.X_train, self.y_train)
+        transformed_X = trained_oe.transform(self.X_test)
+        orig_X_oe = trained_oe._impl.inverse_transform(transformed_X)
+        self.assertEqual(orig_X_ohe.all(), orig_X_oe.all())
+
+    def test_handle_unknown_error(self):
+        from lale.lib.sklearn import OrdinalEncoder
+        X_train, y_train = self.X_train, self.y_train
+        X_test, y_test = self.X_test, self.y_test
+
+        fproc_oe = OrdinalEncoder(handle_unknown="error")
+        #test_init_fit_transform
+        trained_oe = fproc_oe.fit(self.X_train, self.y_train)
+        with self.assertRaises(ValueError):#This is repying on the train_test_split, so may fail randomly
+            transformed_X = trained_oe.transform(self.X_test)
+
+    def test_encode_unknown_with(self):
+        from lale.lib.sklearn import OrdinalEncoder
+        import numpy as np
+        X_train, y_train = self.X_train, self.y_train
+        X_test, y_test = self.X_test, self.y_test
+
+        fproc_oe = OrdinalEncoder(handle_unknown="ignore", encode_unknown_with=1000)
+        #test_init_fit_transform
+        trained_oe = fproc_oe.fit(self.X_train, self.y_train)
+        transformed_X = trained_oe.transform(self.X_test)
+        #This is repying on the train_test_split, so may fail randomly
+        self.assertTrue(1000 in transformed_X)
+        #Testing that inverse_transform works even for encode_unknown_with=1000
+        orig_X_oe = trained_oe._impl.inverse_transform(transformed_X)
+
+class TestOperatorErrors(unittest.TestCase):
+
+    def test_trainable_get_pipeline_fail(self):
+        try:
+            x = LogisticRegression().get_pipeline
+            self.fail("get_pipeline did not fail")
+        except AttributeError as e:
+            msg:str = str(e)
+            self.assertRegex(msg, "TrainableOperator is deprecated")
+            self.assertRegex(msg, "meant to train")
+        
+    def test_trained_get_pipeline_fail(self):
+        try:
+            x = NoOp().get_pipeline
+            self.fail("get_pipeline did not fail")
+        except AttributeError as e:
+            msg:str = str(e)
+            self.assertRegex(msg, "underlying operator")
+ 
+    def test_trained_get_pipeline_success(self):
+        from lale.lib.lale import Hyperopt
+        from sklearn.datasets import load_iris
+        iris_data = load_iris()
+        op = Hyperopt(estimator=LogisticRegression(), max_evals=1)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            op2 = op.fit(iris_data.data[10:], iris_data.target[10:])
+            x = op2.get_pipeline
+
+    def test_trainable_summary_fail(self):
+        try:
+            x = LogisticRegression().summary
+            self.fail("summary did not fail")
+        except AttributeError as e:
+            msg:str = str(e)
+            self.assertRegex(msg, "TrainableOperator is deprecated")
+            self.assertRegex(msg, "meant to train")
+
+    def test_trained_summary_fail(self):
+        try:
+            x = NoOp().summary
+            self.fail("summary did not fail")
+        except AttributeError as e:
+            msg:str = str(e)
+            self.assertRegex(msg, "underlying operator")
+
+    def test_trained_summary_success(self):
+        from lale.lib.lale import Hyperopt
+        from sklearn.datasets import load_iris
+        iris_data = load_iris()
+        op = Hyperopt(estimator=LogisticRegression(), max_evals=1, show_progressbar=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            op2 = op.fit(iris_data.data[10:], iris_data.target[10:])
+            x = op2.summary
+
+class TestFriedmanMSE(unittest.TestCase):
+    #This was prompted buy a bug, keeping it as it may help with support for other sklearn versions
+    def setUp(self):
+        from sklearn.datasets import make_regression
+        from sklearn.model_selection import train_test_split
+        X, y = make_regression(n_features=4, n_informative=2,
+                               random_state=0, shuffle=False)
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+
+    def test_rfr(self):
+        from lale.lib.sklearn import RandomForestRegressor
+
+        reg = RandomForestRegressor(bootstrap=True, criterion='friedman_mse', max_depth=4, 
+                max_features=0.9832410473940374, max_leaf_nodes=None, min_impurity_decrease=0.0, 
+                min_impurity_split=None, min_samples_leaf=3, min_samples_split=2, min_weight_fraction_leaf=0.0, 
+                n_estimators=29, n_jobs=4, oob_score=False, random_state=33, verbose=0, warm_start=False)        
+        reg.fit(self.X_train, self.y_train)
+
+    def test_etr(self):
+        from lale.lib.sklearn import ExtraTreesRegressor
+
+        reg = ExtraTreesRegressor(bootstrap=True, criterion='friedman_mse', max_depth=4, 
+            max_features=0.9832410473940374, max_leaf_nodes=None, min_impurity_decrease=0.0, 
+            min_impurity_split=None, min_samples_leaf=3, min_samples_split=2, min_weight_fraction_leaf=0.0, 
+            n_estimators=29, n_jobs=4, oob_score=False, random_state=33, verbose=0, warm_start=False)        
+        reg.fit(self.X_train, self.y_train)
+
+class TestSpuriousSideConstraintsRegression(unittest.TestCase):
+    #This was prompted buy a bug, keeping it as it may help with support for other sklearn versions
+    def setUp(self):
+        from sklearn.datasets import make_regression
+        from sklearn.model_selection import train_test_split
+        X, y = make_regression(n_features=4, n_informative=2,
+                               random_state=0, shuffle=False)
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+
+    def test_gradient_boost_regressor(self):
+        from lale.lib.sklearn import GradientBoostingRegressor
+
+        reg = GradientBoostingRegressor(alpha=0.9789984970831765, criterion='friedman_mse', init=None, learning_rate=0.1, loss='ls')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_regressor(self):
+        from lale.lib.sklearn import SGDRegressor
+
+        reg = SGDRegressor(loss='squared_loss', epsilon=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_regressor_1(self):
+        from lale.lib.sklearn import SGDRegressor
+
+        reg = SGDRegressor(learning_rate='optimal', eta0=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_regressor_2(self):
+        from lale.lib.sklearn import SGDRegressor
+
+        reg = SGDRegressor(early_stopping=False, validation_fraction=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_regressor_3(self):
+        from sklearn.linear_model import SGDRegressor
+
+        reg = SGDRegressor(l1_ratio=0.2, penalty='l1')
+        reg.fit(self.X_train, self.y_train)
+
+class TestSpuriousSideConstraintsClassification(unittest.TestCase):
+    #This was prompted buy a bug, keeping it as it may help with support for other sklearn versions
+    def setUp(self):
+        from sklearn.datasets import load_iris
+        from sklearn.model_selection import train_test_split
+        data = load_iris()
+        X, y = data.data, data.target
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+
+    def test_sgd_classifier(self):
+        from lale.lib.sklearn import SGDClassifier
+
+        reg = SGDClassifier(loss='squared_loss', epsilon=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_classifier_1(self):
+        from lale.lib.sklearn import SGDClassifier
+
+        reg = SGDClassifier(learning_rate='optimal', eta0=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_classifier_2(self):
+        from lale.lib.sklearn import SGDClassifier
+
+        reg = SGDClassifier(early_stopping=False, validation_fraction=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_sgd_classifier_3(self):
+        from lale.lib.sklearn import SGDClassifier
+
+        reg = SGDClassifier(l1_ratio=0.2, penalty='l1')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(early_stopping=False, validation_fraction=0.2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_1(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(beta_1=0.8, solver='sgd')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_2(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(beta_2=0.8, solver='sgd')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_2(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(epsilon=0.8, solver='sgd')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_3(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(n_iter_no_change=100, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_4(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(early_stopping=True, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_5(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(nesterovs_momentum=False, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_6(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(momentum=0.8, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_7(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(shuffle=False, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_8(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(learning_rate='invscaling', solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_9(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(learning_rate_init=0.002, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_mlp_classifier_10(self):
+        from lale.lib.sklearn import MLPClassifier
+
+        reg = MLPClassifier(learning_rate='invscaling', power_t = 0.4, solver='lbfgs')
+        reg.fit(self.X_train, self.y_train)
+
+    def test_passive_aggressive_classifier(self):
+        from lale.lib.sklearn import PassiveAggressiveClassifier
+
+        reg = PassiveAggressiveClassifier(validation_fraction=0.4, early_stopping=False)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_svc(self):
+        from lale.lib.sklearn import SVC
+
+        reg = SVC(kernel='linear', gamma=1)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_simple_imputer(self):
+        from lale.lib.sklearn import SimpleImputer
+
+        reg = SimpleImputer(strategy='mean', fill_value=10)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_nystroem(self):
+        from lale.lib.sklearn import Nystroem
+
+        reg = Nystroem(kernel='cosine', gamma=0.1)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_nystroem_1(self):
+        from lale.lib.sklearn import Nystroem
+
+        reg = Nystroem(kernel='cosine', coef0=0.1)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_nystroem_2(self):
+        from lale.lib.sklearn import Nystroem
+
+        reg = Nystroem(kernel='cosine', degree=2)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_ridge_classifier(self):
+        from lale.lib.sklearn import RidgeClassifier
+
+        reg = RidgeClassifier(fit_intercept=False, normalize=True)
+        reg.fit(self.X_train, self.y_train)
+
+    def test_ridge_classifier_1(self):
+        from lale.lib.sklearn import RidgeClassifier
+
+        reg = RidgeClassifier(solver='svd', max_iter=10)
+        reg.fit(self.X_train, self.y_train)
+        
+class TestLaleVersion(unittest.TestCase):
+    def test_version_exists(self):
+        import lale
+        self.assertIsNot(lale.__version__, None)

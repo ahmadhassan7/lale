@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.ensemble.gradient_boosting
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class GradientBoostingClassifierImpl():
@@ -41,20 +41,23 @@ class GradientBoostingClassifierImpl():
             'validation_fraction': validation_fraction,
             'n_iter_no_change': n_iter_no_change,
             'tol': tol}
-        self._sklearn_model = sklearn.ensemble.gradient_boosting.GradientBoostingClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.ensemble.gradient_boosting.GradientBoostingClassifier(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -201,16 +204,8 @@ _hyperparams_schema = {
                 'distribution': 'loguniform',
                 'default': 0.0001,
                 'description': 'Tolerance for the early stopping. When the loss is not improving'},
-        }}, {
-        'description': 'validation_fraction, only used if n_iter_no_change is set to an integer',
-        'anyOf': [
-        { 'type': 'object',
-            'properties': {
-            'n_iter_no_change': {'not': {'enum': ['None']}}}},
-        { 'type': 'object',
-            'properties': {
-            'validation_fraction':{'enum':[0.1]}}}]}]
-}
+        }}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Fit the gradient boosting model.',
@@ -228,7 +223,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values (strings or integers in classification, real numbers'},
         'sample_weight': {
             'anyOf': [{
@@ -264,7 +260,8 @@ _output_predict_schema = {
     'description': 'The predicted values.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -291,10 +288,34 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html',
+    'description': """`Gradient boosting classifier`_ random forest from scikit-learn.
+
+.. _`Gradient boosting classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html#sklearn-ensemble-gradientboostingclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.gradient_boosting_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -306,8 +327,11 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema}}
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(GradientBoostingClassifierImpl, _combined_schemas)
+
 GradientBoostingClassifier = lale.operators.make_operator(GradientBoostingClassifierImpl, _combined_schemas)

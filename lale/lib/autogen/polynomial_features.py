@@ -1,7 +1,8 @@
 
-from sklearn.preprocessing.data import PolynomialFeatures as SKLModel
+from sklearn.preprocessing.data import PolynomialFeatures as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class PolynomialFeaturesImpl():
@@ -11,17 +12,17 @@ class PolynomialFeaturesImpl():
             'degree': degree,
             'interaction_only': interaction_only,
             'include_bias': include_bias}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for PolynomialFeatures    Generate polynomial and interaction features.',
@@ -47,7 +48,7 @@ _hyperparams_schema = {
                 'default': True,
                 'description': 'If True (default), then include a bias column, the feature in which all polynomial powers are zero (i.e'},
         }}, {
-        'XXX TODO XXX': 'Parameter: interaction_only > only interaction features are produced: features that are products of at most degree *distinct* input features (so not x[1] ** 2'}],
+        'XXX TODO XXX': 'Parameter: interaction_only > only interaction features are produced: features that are products of at most degree *distinct* input features (so not x[1] ** 2, x[0] * x[2] ** 3, etc'}],
 }
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -96,6 +97,7 @@ _output_transform_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.PolynomialFeatures#sklearn-preprocessing-polynomialfeatures',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -107,7 +109,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(PolynomialFeaturesImpl, _combined_schemas)
 PolynomialFeatures = lale.operators.make_operator(PolynomialFeaturesImpl, _combined_schemas)
 

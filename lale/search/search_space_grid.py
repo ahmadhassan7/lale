@@ -20,7 +20,7 @@ import math
 from collections import ChainMap
 
 from lale.util.Visitor import Visitor, accept
-from lale.search.search_space import SearchSpace, SearchSpaceObject, SearchSpaceConstant, SearchSpaceEnum, SearchSpaceSum, SearchSpaceProduct, SearchSpacePrimitive, SearchSpaceArray, SearchSpaceOperator, should_print_search_space
+from lale.search.search_space import SearchSpace, SearchSpaceObject, SearchSpaceConstant, SearchSpaceEnum, SearchSpaceSum, SearchSpaceProduct, SearchSpacePrimitive, SearchSpaceArray, SearchSpaceOperator, should_print_search_space, SearchSpaceEmpty, SearchSpaceError
 from lale.search.schema2search_space import op_to_search_space
 from lale.search.PGO import PGO
 from lale.sklearn_compat import nest_all_HPparams, nest_choice_all_HPparams, DUMMY_SEARCH_SPACE_GRID_PARAM_NAME, discriminant_name, make_indexed_name, make_array_index_name, structure_type_name, structure_type_list, structure_type_tuple, structure_type_dict
@@ -87,8 +87,7 @@ class SearchSpaceToGridVisitor(Visitor):
     @classmethod
     def run(cls, space:SearchSpace)->List[SearchSpaceGrid]:
         visitor = cls()
-        space_:Any = space
-        grids:SearchSpaceGridInternalType = space_.accept(visitor)
+        grids:SearchSpaceGridInternalType = accept(space, visitor)
         fixed_grids = cls.fixupDegenerateSearchSpaces(grids)
         return fixed_grids
 
@@ -150,7 +149,7 @@ class SearchSpaceToGridVisitor(Visitor):
             kvs_complex:List[List[SearchSpaceGrid]] = []
             kvs_simple:SearchSpaceGrid = {}
             for k,v in zip(keys, c):
-                vspace:Union[List[SearchSpaceGrid],SearchSpacePrimitive] = v.accept(self)
+                vspace:Union[List[SearchSpaceGrid],SearchSpacePrimitive] = accept(v, self)
                 if isinstance(vspace, SearchSpacePrimitive):
                     kvs_simple[k] = vspace
                 else:
@@ -207,3 +206,6 @@ class SearchSpaceToGridVisitor(Visitor):
 
     def visitSearchSpaceOperator(self, op:SearchSpaceOperator)->SearchSpaceGridInternalType:
         return accept(op.sub_space, self)
+
+    def visitSearchSpaceEmpty(self, op:SearchSpaceEmpty):
+        raise SearchSpaceError(None, "Grid based backends can't compile an empty (sub-) search space")

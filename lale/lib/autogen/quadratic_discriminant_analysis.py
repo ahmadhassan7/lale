@@ -1,7 +1,8 @@
 
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as SKLModel
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class QuadraticDiscriminantAnalysisImpl():
@@ -13,20 +14,23 @@ class QuadraticDiscriminantAnalysisImpl():
             'store_covariance': store_covariance,
             'tol': tol,
             'store_covariances': store_covariances}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for QuadraticDiscriminantAnalysis    Quadratic Discriminant Analysis',
@@ -53,7 +57,7 @@ _hyperparams_schema = {
                 'type': 'number',
                 'minimumForOptimizer': 1e-08,
                 'maximumForOptimizer': 0.01,
-                'distribution': 'uniform',
+                'distribution': 'loguniform',
                 'default': 0.0001,
                 'description': 'Threshold used for rank estimation'},
             'store_covariances': {
@@ -133,9 +137,41 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+_input_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Apply decision function to an array of samples.',
+    'type': 'object',
+    'required': ['X'],
+    'properties': {
+        'X': {
+            'type': 'array',
+            'items': {
+                'type': 'array',
+                'items': {
+                    'type': 'number'},
+            },
+            'description': 'Array of samples (test vectors).'},
+    },
+}
+_output_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Decision function values related to each class, per sample',
+    'anyOf': [{
+        'type': 'array',
+        'items': {
+            'type': 'array',
+            'items': {
+                'type': 'number'},
+        }}, {
+        'type': 'array',
+        'items': {
+            'type': 'number'},
+    }],
+}
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis#sklearn-discriminant_analysis-quadraticdiscriminantanalysis',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -147,9 +183,10 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema},
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(QuadraticDiscriminantAnalysisImpl, _combined_schemas)
 QuadraticDiscriminantAnalysis = lale.operators.make_operator(QuadraticDiscriminantAnalysisImpl, _combined_schemas)
 

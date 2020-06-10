@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from sklearn.linear_model.stochastic_gradient import SGDRegressor as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
-from numpy import nan, inf
 
 class SGDRegressorImpl():
 
@@ -40,17 +39,17 @@ class SGDRegressorImpl():
             'n_iter_no_change': n_iter_no_change,
             'warm_start': warm_start,
             'average': average}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for SGDRegressor    Linear model fitted by minimizing a regularized empirical loss with SGD',
@@ -167,42 +166,6 @@ _hyperparams_schema = {
                 'default': False,
                 'description': 'When set to True, computes the averaged SGD weights and stores the'}
         }}, {
-        'description': 'l1_ratio is the Elastic Net mixing parameter',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'l1_ratio': {
-                    'enum': [0.15]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'penalty': {
-                    'enum': ['elasticnet']},
-            }}]}, {
-        'description': "epsilon, only if loss is 'huber', 'epsilon_insensitive', or 'squared_epsilon_insensitive",
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'epsilon': {
-                    'enum': [0.1]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'loss': {
-                    'enum': ['huber', 'epsilon_insensitive', 'squared_epsilon_insensitive']},
-            }}]},{
-        'description': 'eta0 is not used by the default schedule ‘optimal’.',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'eta0': {
-                    'enum': [0.0]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'learning_rate': {
-                    'enum': ['constant', 'invscaling', 'adaptive']},
-            }}]},{
         'description': 'eta0 must be greater than 0 if the learning_rate is not ‘optimal’.',
         'anyOf': [{
             'type': 'object',
@@ -216,20 +179,8 @@ _hyperparams_schema = {
                     'type': 'number',
                     'minimum': 0.0, 
                     'exclusiveMinimum': True },
-            }}]}, {
-        'description': 'validation_fraction, only used if early_stopping is true',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'validation_fraction': {
-                    'enum': [0.1]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'early_stopping': {
-                    'enum': [True]},
-            }}]}],
-}
+            }}]}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Fit linear model with Stochastic Gradient Descent.',
@@ -293,8 +244,11 @@ _output_predict_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDRegressor.html',
+    'description': """`SGD regressor`_ from scikit-learn uses linear regressors (SVM, logistic regression, a.o.) with stochastic gradient descent training.
+
+.. _`SGD regressor`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.SGDRegressor.html#sklearn-linear-model-sgdregressor
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.sgd_regressor.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -306,7 +260,7 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SGDRegressorImpl, _combined_schemas)
+
 SGDRegressor = lale.operators.make_operator(SGDRegressorImpl, _combined_schemas)
 

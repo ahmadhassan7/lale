@@ -243,6 +243,38 @@ def run_hyperopt_on_planned_pipeline(planned_pipeline, max_iters=1) :
     # run optimizer
     res = opt.fit(features, labels)    
 
+import lale.schemas as schemas
+
+class TestVisitorErrors(unittest.TestCase) :
+    def test_empty_schema(self) :
+        pca = PCA().customize_schema(whiten=schemas.Schema())
+        plan = (
+            ( pca & ( MinMaxScaler | Normalizer ) ) >> ConcatFeatures() >>
+            ( MinMaxScaler | Normalizer ) >>
+            ( LogisticRegression | KNeighborsClassifier)
+        )
+        from lale.search.schema2search_space import OperatorSchemaError
+        with self.assertRaises(OperatorSchemaError) as ctxt:
+            run_hyperopt_on_planned_pipeline(plan)
+#        print(str(ctxt.exception))
+
+    def test_no_max_schema(self) :
+        pca = PCA().customize_schema(n_components=schemas.Float(min=0.0))
+        plan = (
+            ( pca & ( MinMaxScaler | Normalizer ) ) >> ConcatFeatures() >>
+            ( MinMaxScaler | Normalizer ) >>
+            ( LogisticRegression | KNeighborsClassifier)
+        )
+        from lale.search.search_space import SearchSpaceError
+        with self.assertRaises(SearchSpaceError) as ctxt:
+            run_hyperopt_on_planned_pipeline(plan)
+
+#        print(str(ctxt.exception))
+
+        
+
+
+
 class TestHyperoptOperatorDuplication(unittest.TestCase) :
     def test_planned_pipeline_1(self) :
         plan = (
@@ -393,8 +425,6 @@ class TestHyperopt(unittest.TestCase):
     def test_with_concat_features1(self):
         import warnings
         warnings.filterwarnings("ignore")
-        import logging
-        logging.basicConfig(level=logging.DEBUG)
 
         from sklearn.datasets import load_iris
         from lale.lib.lale import Hyperopt
@@ -415,8 +445,6 @@ class TestHyperopt(unittest.TestCase):
     def test_with_concat_features2(self):
         import warnings
         warnings.filterwarnings("ignore")
-        import logging
-        logging.basicConfig(level=logging.DEBUG)
 
         from sklearn.datasets import load_iris
         from lale.lib.lale import Hyperopt
@@ -676,3 +704,50 @@ class TestHigherOrderOperators(unittest.TestCase):
         trained = reg.auto_configure(X_train, y_train, optimizer=Hyperopt, max_evals=1, scoring='r2')
         #Checking that the inner decision tree does not get the default value for min_samples_leaf, not sure if this will always pass
         self.assertNotEqual(trained.hyperparams()['base_estimator'].hyperparams()['min_samples_leaf'], 1)
+
+class TestTopKVotingClassifier(unittest.TestCase):
+    def setUp(self):
+        from sklearn.datasets import load_iris
+        from sklearn.model_selection import train_test_split
+        data = load_iris()
+        X, y = data.data, data.target
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)    
+
+    def test_fit_predict(self):
+        from sklearn.datasets import load_iris
+        from lale.lib.lale import TopKVotingClassifier
+        from lale.lib.sklearn import Nystroem
+        from sklearn.metrics import accuracy_score
+
+        ensemble = TopKVotingClassifier(estimator=(PCA() | Nystroem()) >> (LogisticRegression()|KNeighborsClassifier()), args_to_optimizer={'max_evals':3}, k=2)
+        trained = ensemble.fit(self.X_train, self.y_train)
+        trained.predict(self.X_test)
+
+    def test_fit_args(self):
+        from sklearn.datasets import load_iris
+        from lale.lib.lale import TopKVotingClassifier
+        from lale.lib.sklearn import Nystroem
+        from sklearn.metrics import accuracy_score
+
+        ensemble = TopKVotingClassifier(estimator=(PCA() | Nystroem()) >> (LogisticRegression()|KNeighborsClassifier()), k=2)
+        trained = ensemble.fit(self.X_train, self.y_train)
+        trained.predict(self.X_test)
+
+    def test_fit_smaller_trials(self):
+        from sklearn.datasets import load_iris
+        from lale.lib.lale import TopKVotingClassifier
+        from lale.lib.sklearn import Nystroem
+        from sklearn.metrics import accuracy_score
+
+        ensemble = TopKVotingClassifier(estimator=(PCA() | Nystroem()) >> (LogisticRegression()|KNeighborsClassifier()), args_to_optimizer={'max_evals':3}, k=20)
+        trained = ensemble.fit(self.X_train, self.y_train)
+        final_ensemble = trained._impl._best_estimator
+        self.assertLessEqual(len(final_ensemble._impl._wrapped_model.estimators), 3)
+
+    def test_fit_default_args(self):
+        from sklearn.datasets import load_iris
+        from lale.lib.lale import TopKVotingClassifier
+        from lale.lib.sklearn import Nystroem
+        from sklearn.metrics import accuracy_score
+        with self.assertRaises(ValueError):
+            ensemble = TopKVotingClassifier()

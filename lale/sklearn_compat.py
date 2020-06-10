@@ -20,7 +20,7 @@ import warnings
 import lale.operators as Ops
 from lale.pretty_print import hyperparams_to_string
 from lale.search.PGO import remove_defaults_dict
-from lale.util.Visitor import Visitor
+from lale.util.Visitor import Visitor, accept
 
 # We support an argument encoding schema intended to be a 
 # conservative extension to sklearn's encoding schema
@@ -292,7 +292,7 @@ def set_operator_params(op:Ops.Operator, **impl_params)->Ops.TrainableOperator:
             n,i = get_name_and_index(k)
             assert n in found_names and i <= found_names[n]
         if step_map:
-            op.subst_steps(step_map)
+            op._subst_steps(step_map)
             if not isinstance(op, Ops.TrainablePipeline):
                 # As a result of choices made, we may now be a TrainableIndividualOp
                 ret = Ops.get_pipeline_of_applicable_type(op.steps(), op.edges(), ordered=True)
@@ -388,11 +388,25 @@ class SKlearnCompatWrapper(object):
         else:
             return super().__repr__()
 
-    def __getattr__(self, name):
+    def __getattribute__(self, name):
+        """ Try proxying unknown attributes to the underlying operator
+            getattribute is used instead of getattr to ensure that the 
+            correct underlying error is thrown in case
+            a property (such as classes_) throws an AttributeError
+        """
+
         # This is needed because in python copy skips calling the __init__ method
-        if name == "_base":
-            raise AttributeError
-        return getattr(self._base, name)
+        try:
+            return super(SKlearnCompatWrapper, self).__getattribute__(name)
+        except AttributeError as e:
+            if name == "_base":
+                raise AttributeError
+            try:
+                return getattr(self._base, name)
+            except AttributeError:
+                raise e
+
+
 
     def get_params(self, deep:bool = True)->Dict[str,Any]:
         out:Dict[str,Any] = {}
@@ -445,7 +459,7 @@ class SKlearnCompatWrapper(object):
     def _final_individual_op(self)->Optional[Ops.IndividualOp]:
         op:Optional[Ops.Operator] = self.to_lale()
         while op is not None and isinstance(op, Ops.BasePipeline):
-            op = op.get_last()
+            op = op._get_last()
         if op is not None and not isinstance(op, Ops.IndividualOp):
             op = None
         return op
@@ -454,10 +468,14 @@ class SKlearnCompatWrapper(object):
     def _final_estimator(self):
         op:Optional[Ops.IndividualOp] = self._final_individual_op()
         model = None
-        if op is None:
-            model = None
-        elif hasattr(op, '_impl') and hasattr(op._impl_instance(), '_sklearn_model'):
-            model = op._impl_instance()._sklearn_model
+        if op is not None:
+            # if fit was called, we want to use trained result
+            # even if the code uses the original operrator
+            # since sklearn assumes that fit mutates the operator
+            if hasattr(op, '_trained'):
+                op = op._trained
+            if hasattr(op, '_impl') and hasattr(op._impl_instance(), '_wrapped_model'):
+                model = op._impl_instance()._wrapped_model
         return 'passthrough' if model is None else model
 
     @property
@@ -485,8 +503,7 @@ class DefaultsVisitor(Visitor):
     @classmethod
     def run(cls, op:Ops.Operator)->Dict[str,Any]:
         visitor = cls()
-        accepting_op:Any = op
-        return accepting_op.accept(visitor)
+        return accept(op, visitor)
 
     def __init__(self):
         super(DefaultsVisitor, self).__init__()
@@ -501,7 +518,7 @@ class DefaultsVisitor(Visitor):
     def visitPipeline(self, op:Ops.PlannedPipeline)->Dict[str,Any]:
 
         defaults_list:Iterable[Dict[str,Any]] = (
-            nest_HPparams(s.name(), s.accept(self)) for s in op.steps())
+            nest_HPparams(s.name(), accept(s, self)) for s in op.steps())
 
         defaults:Dict[str,Any] = {}
         for d in defaults_list:
@@ -516,7 +533,7 @@ class DefaultsVisitor(Visitor):
     def visitOperatorChoice(self, op:Ops.OperatorChoice)->Dict[str,Any]:
 
         defaults_list:Iterable[Dict[str,Any]] = (
-            s.accept(self) for s in op.steps())
+            accept(s, self) for s in op.steps())
 
         defaults : Dict[str,Any] = {}
         for d in defaults_list:
@@ -568,5 +585,5 @@ def clone_op(op: OpType, name:str=None) -> OpType:
     from sklearn.base import clone
     nop = clone(make_sklearn_compat(op)).to_lale()
     if name:
-        nop.set_name(name)
+        nop._set_name(name)
     return nop

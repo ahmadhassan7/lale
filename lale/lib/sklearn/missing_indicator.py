@@ -1,8 +1,21 @@
+# Copyright 2019 IBM Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from sklearn.impute import MissingIndicator as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
-from numpy import nan, inf
+from numpy import nan
 
 class MissingIndicatorImpl():
 
@@ -14,15 +27,15 @@ class MissingIndicatorImpl():
             'error_on_new': error_on_new}
 
     def fit(self, X, y=None):
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for MissingIndicator    Binary indicators for missing values.',
@@ -109,7 +122,11 @@ _output_transform_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
+    'description': """`Missing values indicator`_ transformer from scikit-learn.
+
+.. _`Missing values indicator`: https://scikit-learn.org/0.20/modules/generated/sklearn.impute.MissingIndicator.html#sklearn-impute-missingindicator
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.missing_indicator.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -121,7 +138,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
-MissingIndicator = lale.operators.make_operator(MissingIndicatorImpl, _combined_schemas)
+lale.docstrings.set_docstrings(MissingIndicatorImpl, _combined_schemas)
 
+MissingIndicator = lale.operators.make_operator(MissingIndicatorImpl, _combined_schemas)

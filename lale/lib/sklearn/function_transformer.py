@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import sklearn.preprocessing
-import lale.helpers
 import lale.operators
 
 class FunctionTransformerImpl():
@@ -27,18 +26,18 @@ class FunctionTransformerImpl():
             'check_inverse': check_inverse,
             'kw_args': kw_args,
             'inv_kw_args': inv_kw_args}
-        self._sklearn_model = sklearn.preprocessing.FunctionTransformer(
+        self._wrapped_model = sklearn.preprocessing.FunctionTransformer(
             **self._hyperparams)
 
     def fit(self, X, y=None):
         if y is not None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 _hyperparams_schema = {
     'allOf': [
@@ -125,11 +124,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': """FunctionTransformer_ constructs a transformer from an arbitrary callable.
+    'description': """FunctionTransformer_ from scikit-learn constructs a transformer from an arbitrary callable that operates at the level of an entire dataset.
 
 .. _FunctionTransformer: https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.FunctionTransformer.html
 """,
-    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.FunctionTransformer.html',
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.function_transformer.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -140,9 +139,6 @@ _combined_schemas = {
         'input_fit': _input_fit_schema,
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
 
 lale.docstrings.set_docstrings(FunctionTransformerImpl, _combined_schemas)
 

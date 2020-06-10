@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.naive_bayes
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class GaussianNBImpl():
@@ -22,17 +22,17 @@ class GaussianNBImpl():
         self._hyperparams = {
             'priors': priors,
             'var_smoothing': var_smoothing}
-        self._sklearn_model = sklearn.naive_bayes.GaussianNB(**self._hyperparams)
+        self._wrapped_model = sklearn.naive_bayes.GaussianNB(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -75,7 +75,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values.'},
         'sample_weight': {
             'anyOf': [{
@@ -107,7 +108,8 @@ _output_predict_schema = {
     'description': 'Predicted target values for X',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -135,8 +137,11 @@ _output_predict_proba_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html',
+    'description': """`Gaussian Naive Bayes`_ classifier from scikit-learn.
+
+.. _`Gaussian Naive Bayes`: https://scikit-learn.org/0.20/modules/generated/sklearn.naive_bayes.GaussianNB.html#sklearn-naive-bayes-gaussiannb
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.gaussian_naive_bayes.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -150,6 +155,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(GaussianNBImpl, _combined_schemas)
+
 GaussianNB = lale.operators.make_operator(GaussianNBImpl, _combined_schemas)

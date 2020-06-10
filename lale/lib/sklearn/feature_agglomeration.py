@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.cluster.hierarchical
-import lale.helpers
+import lale.docstrings
 import lale.operators
 import numpy as np
 
@@ -28,14 +28,14 @@ class FeatureAgglomerationImpl():
             'compute_full_tree': compute_full_tree,
             'linkage': linkage,
             'pooling_func': pooling_func}
-        self._sklearn_model = sklearn.cluster.hierarchical.FeatureAgglomeration(**self._hyperparams)
+        self._wrapped_model = sklearn.cluster.hierarchical.FeatureAgglomeration(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -171,8 +171,11 @@ _output_transform_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.cluster.FeatureAgglomeration.html',
+    'description': """`Feature agglomeration`_ transformer from scikit-learn.
+
+.. _`Feature agglomeration`: https://scikit-learn.org/0.20/modules/generated/sklearn.cluster.FeatureAgglomeration.html#sklearn-cluster-featureagglomeration
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.feature_agglomeration.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -184,6 +187,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(FeatureAgglomerationImpl, _combined_schemas)
+
 FeatureAgglomeration = lale.operators.make_operator(FeatureAgglomerationImpl, _combined_schemas)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.feature_selection
-import lale.helpers
+import lale.docstrings
 import lale.operators
 import pandas as pd
 
@@ -27,19 +27,19 @@ class SelectKBestImpl():
             self._hyperparams = {
                 'k': k
             }
-        self._sklearn_model = sklearn.feature_selection.SelectKBest(**self._hyperparams)
+        self._wrapped_model = sklearn.feature_selection.SelectKBest(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
         if isinstance(X, pd.DataFrame):
-            keep_indices = self._sklearn_model.get_support(indices=True)
+            keep_indices = self._wrapped_model.get_support(indices=True)
             keep_columns = [X.columns[i] for i in keep_indices]
             result = X[keep_columns]
         else:
-            result = self._sklearn_model.transform(X)
+            result = self._wrapped_model.transform(X)
         return result
 
 _hyperparams_schema = {
@@ -109,8 +109,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Normalizer.html',
+    'description': """`Select k best`_ feature selection transformer from scikit-learn.
+
+.. _`Select k best`: https://scikit-learn.org/0.20/modules/generated/sklearn.feature_selection.SelectKBest.html#sklearn-feature-selection-selectkbest
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.select_k_best.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -122,6 +125,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SelectKBestImpl, _combined_schemas)
+
 SelectKBest = lale.operators.make_operator(SelectKBestImpl, _combined_schemas)

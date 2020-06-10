@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.linear_model
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class RidgeClassifierImpl():
@@ -29,17 +29,20 @@ class RidgeClassifierImpl():
             'solver': solver,
             'class_weight':class_weight,
             'random_state': random_state}
-        self._sklearn_model = sklearn.linear_model.RidgeClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.linear_model.RidgeClassifier(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -111,42 +114,7 @@ _hyperparams_schema = {
                     'enum': [None]}],
                 'default': None,
                 'description': 'The seed of the pseudo random number generator to use when shuffling'},
-        }}, {
-        'description': 'Normalize is ignored when fit_intercept is set to False.',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'fit_intercept': {
-                    'enum': [True]},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'normalize': {
-                    'enum': [False]},
-            }}]},
-        {
-        'description': 'random_state is used when solver == ‘sag’',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'solver': {'enum': ['sag']},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'random_state': {
-                    'enum': [None]},
-            }}]},
-        {'description': 'Maximum number of iterations for conjugate gradient solver',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'solver': {'enum': ['sparse_cg', 'lsqr', 'sag', 'saga']},
-            }},
-        {   'type': 'object',
-            'properties': {
-                'max_iter': {
-                    'enum': [None]},
-            }}]}]}
+        }}]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -177,7 +145,8 @@ _input_fit_schema = {
             {   'type': 'array',
                 'items': {
                     'type': 'string'},
-            }],
+            },
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values'},
         'sample_weight': {
             'anyOf': [{
@@ -212,12 +181,36 @@ _output_predict_schema = {
     'description': 'Predicted class label per sample.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.RidgeClassifier.html',
+    'description': """`Ridge classifier`_ from scikit-learn.
+
+.. _`Ridge classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.RidgeClassifier.html#sklearn-linear-model-ridgeclassifier
+""",
+  'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.ridge_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -227,8 +220,11 @@ _combined_schemas = {
         'hyperparams': _hyperparams_schema,
         'input_fit': _input_fit_schema,
         'input_predict': _input_predict_schema,
-        'output_predict': _output_predict_schema}}
+        'output_predict': _output_predict_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RidgeClassifierImpl, _combined_schemas)
+
 RidgeClassifier = lale.operators.make_operator(RidgeClassifierImpl, _combined_schemas)

@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from sklearn.linear_model.stochastic_gradient import SGDClassifier as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
-from numpy import nan, inf
 
 class SGDClassifierImpl():
 
@@ -42,25 +41,28 @@ class SGDClassifierImpl():
             'class_weight': class_weight,
             'warm_start': warm_start,
             'average': average}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
     def partial_fit(self, X, y=None, classes = None):
-      if not hasattr(self, "_sklearn_model"):
-        self._sklearn_model = SKLModel(**self._hyperparams)
-      self._sklearn_model.partial_fit(X, y, classes = classes)
+      if not hasattr(self, "_wrapped_model"):
+        self._wrapped_model = SKLModel(**self._hyperparams)
+      self._wrapped_model.partial_fit(X, y, classes = classes)
       return self
 
 _hyperparams_schema = {
@@ -189,42 +191,6 @@ _hyperparams_schema = {
                 'default': False,
                 'description': 'When set to True, computes the averaged SGD weights and stores the'}
         }}, {
-        'description': 'l1_ratio is the Elastic Net mixing parameter',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'l1_ratio': {
-                    'enum': [0.15]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'penalty': {
-                    'enum': ['elasticnet']},
-            }}]},{
-        'description': "epsilon, only if loss is 'huber', 'epsilon_insensitive', or 'squared_epsilon_insensitive",
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'epsilon': {
-                    'enum': [0.1]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'loss': {
-                    'enum': ['huber', 'epsilon_insensitive', 'squared_epsilon_insensitive']},
-            }}]}, {
-        'description': 'eta0 is not used by the default schedule ‘optimal’.',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'eta0': {
-                    'enum': [0.0]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'learning_rate': {
-                    'enum': ['constant', 'invscaling', 'adaptive']},
-            }}]},{
         'description': 'eta0 must be greater than 0 if the learning_rate is not ‘optimal’.',
         'anyOf': [{
             'type': 'object',
@@ -238,20 +204,8 @@ _hyperparams_schema = {
                     'type': 'number',
                     'minimum': 0.0, 
                     'exclusiveMinimum': True },
-            }}]},{
-        'description': 'validation_fraction, only used if early_stopping is true',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'validation_fraction': {
-                    'enum': [0.1]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'early_stopping': {
-                    'enum': [True]},
-            }}]}],
-}
+            }}]}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Fit linear model with Stochastic Gradient Descent.',
@@ -269,7 +223,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target values'},
         'coef_init': {
             'type': 'array',
@@ -315,7 +270,8 @@ _output_predict_schema = {
     'description': 'Predicted class label per sample.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -341,10 +297,33 @@ _output_predict_proba_schema = {
             'type': 'number'},
     }}
 
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
+
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDClassifier.html#',
+    'description': """`SGD classifier`_ from scikit-learn uses linear classifiers (SVM, logistic regression, a.o.) with stochastic gradient descent training.
+
+.. _`SGD classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.SGDClassifier.html#sklearn-linear-model-sgdclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.sgd_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -356,9 +335,12 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema}}
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(SGDClassifierImpl, _combined_schemas)
+
 SGDClassifier = lale.operators.make_operator(SGDClassifierImpl, _combined_schemas)
 

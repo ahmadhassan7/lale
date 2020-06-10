@@ -1,7 +1,8 @@
 
-from sklearn.linear_model.coordinate_descent import Lasso as SKLModel
+from sklearn.linear_model.coordinate_descent import Lasso as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LassoImpl():
@@ -19,17 +20,17 @@ class LassoImpl():
             'positive': positive,
             'random_state': random_state,
             'selection': selection}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for Lasso    Linear Model trained with L1 prior as regularizer (aka the Lasso)',
@@ -155,6 +156,7 @@ _output_predict_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.Lasso#sklearn-linear_model-lasso',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -166,7 +168,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LassoImpl, _combined_schemas)
 Lasso = lale.operators.make_operator(LassoImpl, _combined_schemas)
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.svm.classes
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class LinearSVCImpl():
@@ -31,14 +31,17 @@ class LinearSVCImpl():
             'verbose': verbose,
             'random_state': random_state,
             'max_iter': max_iter}
-        self._sklearn_model = sklearn.svm.classes.LinearSVC(**self._hyperparams)
+        self._wrapped_model = sklearn.svm.classes.LinearSVC(**self._hyperparams)
 
     def fit(self, X, y=None, sample_weight=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -129,34 +132,6 @@ _hyperparams_schema = {
                 'default': 1000,
                 'description': 'The maximum number of iterations to be run.'}}},
     {   'description':
-            'If "crammer_singer" is chosen, the options loss, penalty and '
-            'dual will be ignored.',
-        'anyOf': [
-        {   'type': 'object',
-            'properties': {
-                'multi_class': {'not': {'enum': ['crammer_singer']}}}},
-        {   'type': 'object',
-            'properties': {
-                'loss': {'enum': ['squared_hinge']},
-                'penalty': {'enum': ['l2']},
-                'dual': {'enum': [True]}}}]},
-    {   'description':
-            'Setting intercept_scaling is useful only when '
-            'fit_intercept is true.',
-        'anyOf': [
-            { 'type': 'object',
-              'properties': {'intercept_scaling': {'enum': [1.0]}}},
-            { 'type': 'object',
-              'properties': {'fit_intercept': {'enum': [True]}}}]},
-    {   'description':
-            'When dual=False the underlying implementation of LinearSVC is '
-            'not random and random_state has no effect on the results.',
-        'anyOf': [
-            { 'type': 'object',
-              'properties': {'dual': {'enum': [True]}}},
-            { 'type': 'object',
-              'properties': {'random_state': {'enum': [None]}}}]},
-    {   'description':
             'The combination of penalty=`l1` and loss=`hinge` is not supported',
         'anyOf': [
             { 'type': 'object',
@@ -196,7 +171,8 @@ _input_fit_schema = {
         'y': {
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}],
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}],
             'description': 'Target vector relative to X.'},
         'sample_weight': {
             'anyOf': [
@@ -223,12 +199,36 @@ _output_predict_schema = {
     'description': 'Predict class labels for samples in X.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html',
+    'description': """`Linear Support Vector Classification`_ from scikit-learn.
+
+.. _`Linear Support Vector Classification`: https://scikit-learn.org/0.20/modules/generated/sklearn.svm.LinearSVC.html#sklearn-svm-linearsvc
+""",
+  'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.linear_svc.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -238,9 +238,11 @@ _combined_schemas = {
         'hyperparams': _hyperparams_schema,
         'input_fit': _input_fit_schema,
         'input_predict': _input_predict_schema,
-        'output_predict': _output_predict_schema}}
+        'output_predict': _output_predict_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LinearSVCImpl, _combined_schemas)
 
 LinearSVC = lale.operators.make_operator(LinearSVCImpl, _combined_schemas)

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import lale.docstrings
-import lale.helpers
 import lale.operators
 import lale.type_checking
 import functools
@@ -70,6 +69,11 @@ class ConcatFeaturesImpl():
         for s_dataset in s_X['items']:
             if s_dataset.get('laleType', None) == 'Any':
                 return {'laleType': 'Any'}
+            arr_1d_num = {'type': 'array', 'items': {'type': 'number'}}
+            arr_2d_num = {'type': 'array', 'items': arr_1d_num}
+            s_decision_func = {'anyOf': [arr_1d_num, arr_2d_num]}
+            if lale.type_checking.is_subschema(s_decision_func, s_dataset):
+                s_dataset = arr_2d_num
             assert 'items' in s_dataset, lale.pretty_print.to_string(s_dataset)
             s_rows = s_dataset['items']
             if 'type' in s_rows and 'array' == s_rows['type']:
@@ -95,7 +99,7 @@ class ConcatFeaturesImpl():
                 'items': elem_schema}}
         if max_cols != 'unbounded':
             s_result['items']['maxItems'] = max_cols
-        lale.helpers.validate_is_schema(s_result)
+        lale.type_checking.validate_is_schema(s_result)
         return s_result
     
 _hyperparams_schema = {
@@ -136,7 +140,7 @@ _output_transform_schema = {
       'description': 'Outer array dimension is over samples (aka rows).',
       'items': {
         'description': 'Inner array dimension is over features (aka columns).',
-        'type': 'number'}}}
+        'laleType': 'Any'}}}
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -164,9 +168,6 @@ NDArrayWithSchema([[11, 12, 13, 14, 15],
         'hyperparams': _hyperparams_schema,
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
-
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
 
 lale.docstrings.set_docstrings(ConcatFeaturesImpl, _combined_schemas)
 

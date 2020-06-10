@@ -1,7 +1,8 @@
 
-from sklearn.calibration import CalibratedClassifierCV as SKLModel
+from sklearn.calibration import CalibratedClassifierCV as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class CalibratedClassifierCVImpl():
@@ -11,20 +12,20 @@ class CalibratedClassifierCVImpl():
             'base_estimator': base_estimator,
             'method': method,
             'cv': cv}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for CalibratedClassifierCV    Probability calibration with isotonic regression or sigmoid.',
@@ -135,6 +136,7 @@ _output_predict_proba_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.calibration.CalibratedClassifierCV#sklearn-calibration-calibratedclassifiercv',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -148,7 +150,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(CalibratedClassifierCVImpl, _combined_schemas)
 CalibratedClassifierCV = lale.operators.make_operator(CalibratedClassifierCVImpl, _combined_schemas)
 

@@ -12,30 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
 import lale.operators
+import lale.docstrings
 import sklearn.neural_network.multilayer_perceptron
 
 class MLPClassifierImpl():
     def __init__(self, **hyperparams):
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.neural_network.multilayer_perceptron.MLPClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.neural_network.multilayer_perceptron.MLPClassifier(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
     def partial_fit(self, X, y=None, classes = None):
-      if not hasattr(self, "_sklearn_model"):
-        self._sklearn_model = sklearn.neural_network.multilayer_perceptron.MLPClassifier(
+      if not hasattr(self, "_wrapped_model"):
+        self._wrapped_model = sklearn.neural_network.multilayer_perceptron.MLPClassifier(
             **self._hyperparams)
-      self._sklearn_model.partial_fit(X, y, classes = classes)
+      self._wrapped_model.partial_fit(X, y, classes = classes)
       return self
 
 _hyperparams_schema = {
@@ -225,177 +225,7 @@ _hyperparams_schema = {
                 'type': 'integer',
                 'default': 10,
                 'minimum': 1},
-        }},
-    {   'description':
-            'If the solver is "lbfgs", the classifier will not use minibatch',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'not': {
-                        'enum': ['lbfgs']},
-                }},
-        }, {
-            'type': 'object',
-            'property': {
-                'batch_size': 'auto'},
-        }]},
-    {   'description': 'The learning rate is only used when solver="sgd".',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'learning_rate': {
-                    'enum': ['constant']},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd']},
-            }}]},
-    {   'description':
-            'The initial learning rate is only used when '
-            'solver="sgd" or "adam".',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'learning_rate_init': {
-                    'enum': [0.001]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd', 'adam']},
-            }}]},
-    {   'description':
-            'The exponent for inverse scaling learning rate is used in '
-            'updating effective learning rate when the learning_rate is '
-            'set to "invscaling" and when solver="sgd".',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'power_t': {
-                    'enum': [0.5]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'learning_rate': {
-                    'enum': ['invscaling']},
-                'solver': {
-                    'enum': ['sgd']},
-            }}]},
-    {   'description': 'Shuffle is only used when solver="sgd" or "adam".',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'shuffle': {
-                    'enum': [True]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd', 'adam']},
-            }}]},
-    {   'description': 'The momentum  is only used when solver="sgd".',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'momentum': {
-                    'enum': [0.9]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd']},
-            }}]},
-    {   'description':
-            "The Nesterov's momentum is only used when solver='sgd' "
-            "and momentum > 0.",
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'nesterovs_momentum': {
-                    'enum': [True]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd']},
-            }}]},
-    {   'description':
-            'Early stopping is only effective when solver="sgd" or "adam"',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'early_stopping': {
-                    'enum': [False]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd', 'adam']},
-            }}]},
-    {   'description':
-            'The validation fraction is only used if early stopping is True',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'validation_fraction': {
-                    'enum': [0.1]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'early_stopping': {
-                    'enum': [True]},
-            }}]},
-    {   'description': 'beta_1 is only used for solver adam',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'beta_1': {
-                    'enum': [0.9]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['adam']},
-            }}]},
-    {   'description': 'beta_2 is only used for solver adam',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'beta_2': {
-                    'enum': [0.999]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['adam']},
-            }}]},
-    {   'description': 'epsilon is only used for solver adam',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'epsilon': {
-                    'enum': [1e-08]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['adam']},
-            }}]},
-    {   'description':
-            'n_iter_no_change is only effective when solver="sgd" or "adam"',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'n_iter_no_change': {
-                    'enum': [10]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'solver': {
-                    'enum': ['sgd', 'adam']},
-            }}]}]}
+        }}]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -417,12 +247,9 @@ _input_fit_schema = {
                 'items': {
                     'type': 'array',
                     'items': { 'type': 'number'}}},
-            {   'type': 'array',
-                'items': {
-                    'type': 'number'}},
-            {   'type': 'array',
-                'items': {
-                    'type': 'string'}}]}}}
+            {   'type': 'array', 'items': {'type': 'number'}},
+            {   'type': 'array', 'items': {'type': 'string'}},
+            {   'type': 'array', 'items': {'type': 'boolean'}}]}}}
 
 _input_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -441,12 +268,9 @@ _output_predict_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Predict using the multi-layer perceptron classifier',
     'anyOf': [
-    {   'type': 'array',
-        'items': {
-            'type': 'number'}},
-    {   'type': 'array',
-        'items': {
-            'type': 'string'}}]}
+    {   'type': 'array', 'items': {'type': 'number'}},
+    {   'type': 'array', 'items': {'type': 'string'}},
+    {   'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     'type': 'object',
@@ -467,8 +291,11 @@ _output_predict_proba_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html',
+    'description': """`Multi-layer perceptron`_ dense deep neural network from scikit-learn for classification.
+
+.. _`Multi-layer perceptron`: https://scikit-learn.org/0.20/modules/generated/sklearn.neural_network.MLPClassifier.html#sklearn-neural-network-mlpclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.mlp_classifier.html',
     'type': 'object',
     'tags': {
         'pre': ['~categoricals'],
@@ -482,7 +309,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(MLPClassifierImpl, _combined_schemas)
 
 MLPClassifier = lale.operators.make_operator(MLPClassifierImpl, _combined_schemas)

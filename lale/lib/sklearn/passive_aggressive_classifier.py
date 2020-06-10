@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import sklearn.linear_model.passive_aggressive
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class PassiveAggressiveClassifierImpl():
@@ -39,14 +38,18 @@ class PassiveAggressiveClassifierImpl():
             'warm_start': warm_start,
             'class_weight': class_weight,
             'average': average}
-        self._sklearn_model = sklearn.linear_model.passive_aggressive.PassiveAggressiveClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.linear_model.passive_aggressive.PassiveAggressiveClassifier(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
+
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Passive Aggressive Classifier',
@@ -148,19 +151,7 @@ _hyperparams_schema = {
                     'forOptimizer': False}],
                 'default': False,
                 'description': 'When set to True, computes the averaged SGD weights and stores the'}
-        }},
-        {'description': 'validation_fraction, only used if early_stopping is true',
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                'early_stopping': {
-                    'enum': [True]},
-            }}, {
-            'type': 'object',
-            'properties': {
-                'validation_fraction': {
-                    'enum': [0.1]}, #i.e. it should not have a value other than its default.
-            }}]}]}
+        }}]}
 
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -178,7 +169,8 @@ _input_fit_schema = {
             'description': 'Target values',
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}]
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}]
             },
         'coef_init': {
             'type': 'array',
@@ -212,12 +204,36 @@ _output_predict_schema = {
     'description': 'Predict class labels for samples in X.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
+
+_input_decision_function_schema = {
+  'type': 'object',
+  'required': ['X'],
+  'additionalProperties': False,
+  'properties': {
+    'X': {
+      'description': 'Features; the outer array is over samples.',
+      'type': 'array',
+      'items': {'type': 'array', 'items': {'type': 'number'}}}}}
+
+_output_decision_function_schema = {
+    'description': 'Confidence scores for samples for each class in the model.',
+    'anyOf': [
+    {   'description': 'In the multi-way case, score per (sample, class) combination.',
+        'type': 'array',
+        'items': {'type': 'array', 'items': {'type': 'number'}}},
+    {   'description': 'In the binary case, score for `self._classes[1]`.',
+        'type': 'array',
+        'items': {'type': 'number'}}]}
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.PassiveAggressiveClassifier.html',
+    'description': """`Passive aggressive`_ classifier from scikit-learn.
+
+.. _`Passive aggressive`: https://scikit-learn.org/0.20/modules/generated/sklearn.linear_model.PassiveAggressiveClassifier.html#sklearn-linear-model-passiveaggressiveclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.passive_aggressive_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -227,9 +243,12 @@ _combined_schemas = {
         'hyperparams': _hyperparams_schema,
         'input_fit': _input_fit_schema,
         'input_predict': _input_predict_schema,
-        'output_predict': _output_predict_schema}}
+        'output_predict': _output_predict_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema,
+}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(PassiveAggressiveClassifierImpl, _combined_schemas)
+
 PassiveAggressiveClassifier = lale.operators.make_operator(PassiveAggressiveClassifierImpl, _combined_schemas)
 

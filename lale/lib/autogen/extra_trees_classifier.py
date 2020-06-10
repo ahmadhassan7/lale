@@ -1,7 +1,8 @@
 
-from sklearn.ensemble.forest import ExtraTreesClassifier as SKLModel
+from sklearn.ensemble.forest import ExtraTreesClassifier as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class ExtraTreesClassifierImpl():
@@ -25,20 +26,20 @@ class ExtraTreesClassifierImpl():
             'verbose': verbose,
             'warm_start': warm_start,
             'class_weight': class_weight}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for ExtraTreesClassifier    An extra-trees classifier.',
@@ -269,10 +270,11 @@ _output_predict_proba_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.ExtraTreesClassifier#sklearn-ensemble-extratreesclassifier',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['estimator', 'classifier'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -282,7 +284,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(ExtraTreesClassifierImpl, _combined_schemas)
 ExtraTreesClassifier = lale.operators.make_operator(ExtraTreesClassifierImpl, _combined_schemas)
 

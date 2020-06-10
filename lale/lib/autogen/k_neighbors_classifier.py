@@ -1,7 +1,8 @@
 
-from sklearn.neighbors.classification import KNeighborsClassifier as SKLModel
+from sklearn.neighbors.classification import KNeighborsClassifier as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class KNeighborsClassifierImpl():
@@ -16,20 +17,20 @@ class KNeighborsClassifierImpl():
             'metric': metric,
             'metric_params': metric_params,
             'n_jobs': n_jobs}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for KNeighborsClassifier    Classifier implementing the k-nearest neighbors vote.',
@@ -162,10 +163,11 @@ _output_predict_proba_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.neighbors.KNeighborsClassifier#sklearn-neighbors-kneighborsclassifier',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['estimator'],
+        'op': ['estimator', 'classifier'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -175,7 +177,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(KNeighborsClassifierImpl, _combined_schemas)
 KNeighborsClassifier = lale.operators.make_operator(KNeighborsClassifierImpl, _combined_schemas)
 

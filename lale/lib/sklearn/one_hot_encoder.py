@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
 import lale.operators
-import pandas as pd
+import lale.docstrings
 import sklearn.preprocessing
 
 class OneHotEncoderImpl():
     def __init__(self, **hyperparams):
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.preprocessing.OneHotEncoder(**self._hyperparams)
+        self._wrapped_model = sklearn.preprocessing.OneHotEncoder(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 
 _hyperparams_schema = {
@@ -65,7 +64,7 @@ _hyperparams_schema = {
                 'default': True},
             'dtype': {
                 'description': 'Desired dtype of output, must be number. See https://docs.scipy.org/doc/numpy-1.14.0/reference/arrays.scalars.html#arrays-scalars-built-in',
-                'enum': ['byte', 'short', 'intc', 'int_', 'longlong', 'intp', 'int8', 'int16', 'int32', 'int64', 'ubyte', 'ushort', 'uintc', 'uint', 'ulonglong', 'uintp', 'uint16', 'uint32', 'uint64', 'half', 'single', 'double', 'float_', 'longfloat', 'float16', 'float32', 'float64', 'float96', 'float128'],
+                'laleType':'Any',
                 'default': 'float64'},
             'handle_unknown': {
                 'description': 'Whether to raise an error or ignore if an unknown categorical feature is present during transform.',
@@ -108,7 +107,7 @@ _input_transform_schema = {
 
 _output_transform_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Output data schema for predictions (projected data) using the OneHotEncoder model from scikit-learn. See the official documentation for details: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html\n',
+    'description': 'Output data schema for predictions (projected data) using the OneHotEncoder model from scikit-learn. See the official documentation for details: https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.OneHotEncoder.html\n',
     'type': 'array',
     'items': {
         'type': 'array',
@@ -117,8 +116,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html',
+    'description': """`One-hot encoder`_ transformer from scikit-learn that encodes categorical features as numbers.
+
+.. _`One-hot encoder`: https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.OneHotEncoder.html#sklearn-preprocessing-onehotencoder
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.one_hot_encoder.html',
     'type': 'object',
     'tags': {
         'pre': ['categoricals'],
@@ -130,7 +132,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(OneHotEncoderImpl, _combined_schemas)
 
 OneHotEncoder = lale.operators.make_operator(OneHotEncoderImpl, _combined_schemas)

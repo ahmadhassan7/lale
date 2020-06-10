@@ -14,17 +14,11 @@ class NonTerminal(Operator):
     def _lale_clone(self, cloner):
         return NonTerminal(self.name())
     
-    def has_same_impl(self):
+    def _has_same_impl(self):
         pass
     
     def is_supervised(self):
         return False
-
-    def name(self):
-        return self._name
-    
-    def set_name(self, name):
-        self._name = name
 
     def validate_schema(self, X, y=None):
         raise NotImplementedError() #TODO
@@ -58,17 +52,11 @@ class Grammar(Operator):
     def _lale_clone(self):
         pass
     
-    def has_same_impl(self):
+    def _has_same_impl(self):
         pass
     
     def is_supervised(self):
         return False
-
-    def name(self):
-        return self._name
-    
-    def set_name(self, name):
-        self._name = name
             
     def validate_schema(self, X, y=None):
         raise NotImplementedError() #TODO
@@ -129,7 +117,7 @@ class Grammar(Operator):
         op = self._unfold(self.start, n)
         return make_pipeline(op) if op else NoOp
     
-    def _sample(self, op, n):
+    def _sample(self, op: Operator, n: int) -> Optional[Operator]:
         """
         Sample the grammar `g` starting from `g.start`, that is, choose one element at random for each possible choices.
         
@@ -142,7 +130,7 @@ class Grammar(Operator):
         
         Returns
         -------
-        PlannedOperator
+        Optional[Operator]
         """
         if isinstance(op, BasePipeline):
             steps = op.steps()

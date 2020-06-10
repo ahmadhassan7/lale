@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.ensemble.forest
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class RandomForestRegressorImpl():
@@ -36,17 +36,17 @@ class RandomForestRegressorImpl():
             'random_state': random_state,
             'verbose': verbose,
             'warm_start': warm_start}
-        self._sklearn_model = sklearn.ensemble.forest.RandomForestRegressor(**self._hyperparams)
+        self._wrapped_model = sklearn.ensemble.forest.RandomForestRegressor(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'A random forest regressor.',
@@ -63,7 +63,7 @@ _hyperparams_schema = {
                 'default': 10,
                 'description': 'The number of trees in the forest.'},
             'criterion': {
-                'enum': ['mse', 'mae'],
+                'enum': ['mse', 'mae', 'friedman_mse'],
                 'default': 'mse',
                 'description': 'The function to measure the quality of a split. Supported criteria'},
             'max_depth': {
@@ -215,8 +215,11 @@ _output_predict_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html',
+    'description': """`Random forest regressor`_ from scikit-learn.
+
+.. _`Random forest regressor`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.RandomForestRegressor.html#sklearn-ensemble-randomforestregressor
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.random_forest_regressor.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -228,6 +231,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RandomForestRegressorImpl, _combined_schemas)
+
 RandomForestRegressor = lale.operators.make_operator(RandomForestRegressorImpl, _combined_schemas)

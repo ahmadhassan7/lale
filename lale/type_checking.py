@@ -35,14 +35,15 @@ import jsonschema
 import jsonsubschema
 import lale.helpers
 import numpy as np
+import os
 import pandas as pd
 import scipy.sparse
 import logging
 import inspect
 from typing import Any, Dict, List, Union
-import lale.datasets.data_schemas
+JSON_TYPE = Dict[str, Any]
 
-def validate_schema(value, schema: Dict[str, Any], subsample_array:bool=True):
+def validate_schema(value, schema: JSON_TYPE, subsample_array:bool=True):
     """Validate that the value is an instance of the schema.
 
     Parameters
@@ -61,8 +62,31 @@ def validate_schema(value, schema: Dict[str, Any], subsample_array:bool=True):
     jsonschema.ValidationError
         The value was invalid for the schema.
     """
+    disable_schema = os.environ.get("LALE_DISABLE_SCHEMA_VALIDATION", None)
+    if disable_schema is not None and disable_schema.lower()=='true':
+        return True #If schema validation is disabled, always return as valid    
     json_value = lale.helpers.data_to_json(value, subsample_array)
     jsonschema.validate(json_value, schema, jsonschema.Draft4Validator)
+
+_JSON_META_SCHEMA_URL = 'http://json-schema.org/draft-04/schema#'
+
+def _json_meta_schema() -> Dict[str, Any]:
+    return jsonschema.Draft4Validator.META_SCHEMA
+
+def validate_is_schema(value: Dict[str, Any]):
+    #TODO: move this function to lale.type_checking
+    if '$schema' in value:
+        assert value['$schema'] == _JSON_META_SCHEMA_URL
+    jsonschema.validate(value, _json_meta_schema())
+
+def is_schema(value) -> bool:
+    if isinstance(value, dict):
+        try:
+            jsonschema.validate(value, _json_meta_schema())
+        except:
+            return False
+        return True
+    return False
 
 def _json_replace(subject, old, new):
     if subject == old:
@@ -85,7 +109,7 @@ def _json_replace(subject, old, new):
                     is_sub_dict = False
                     break
             if is_sub_dict:
-                return {**subject, **new}
+                return new
         result = {k: _json_replace(v, old, new) for k, v in subject.items()}
         for k in subject:
             if subject[k] != result[k]:
@@ -112,7 +136,7 @@ def is_subschema(sub_schema, super_schema) -> bool:
     try:
         return jsonsubschema.isSubschema(new_sub, super_schema)
     except Exception as e:
-        raise ValueError(f'problem checking ({sub_schema} <: {super_schema})') from e
+        raise ValueError(f'unexpected internal error checking ({new_sub} <: {super_schema})') from e
 
 class SubschemaError(Exception):
     """Raised when a subschema check (sub `<:` sup) failed.
@@ -126,8 +150,8 @@ class SubschemaError(Exception):
     def __str__(self):
         summary = f'Expected {self.sub_name} to be a subschema of {self.sup_name}.'
         import lale.pretty_print
-        sub = lale.pretty_print.schema_to_string(self.sub)
-        sup = lale.pretty_print.schema_to_string(self.sup)
+        sub = lale.pretty_print.json_to_string(self.sub)
+        sup = lale.pretty_print.json_to_string(self.sup)
         details = f'\n{self.sub_name} = {sub}\n{self.sup_name} = {sup}'
         return summary + details
 
@@ -154,9 +178,13 @@ def validate_schema_or_subschema(lhs, super_schema):
     SubschemaError
         The lhs was or had a schema that was not a subschema of super_schema.
     """
-    if lale.helpers.is_schema(lhs):
+    disable_schema = os.environ.get("LALE_DISABLE_SCHEMA_VALIDATION", None)
+    if disable_schema is not None and disable_schema.lower()=='true':
+        return True #If schema validation is disabled, always return as valid
+    if is_schema(lhs):
         sub_schema = lhs
     else:
+        import lale.datasets.data_schemas
         try:
             sub_schema = lale.datasets.data_schemas.to_schema(lhs)
         except ValueError as e:
@@ -166,7 +194,7 @@ def validate_schema_or_subschema(lhs, super_schema):
     else:
         _validate_subschema(sub_schema, super_schema)
 
-def join_schemas(*schemas: list):
+def join_schemas(*schemas: JSON_TYPE) -> JSON_TYPE:
     """Compute the lattice join (union type, disjunction) of the arguments.
 
     Parameters
@@ -191,7 +219,8 @@ def join_schemas(*schemas: list):
         return jsonsubschema.joinSchemas(s_a, s_b)
     if len(schemas) == 0:
         return {'not':{}}
-    return functools.reduce(join_two_schemas, schemas)
+    result = functools.reduce(join_two_schemas, schemas)
+    return result
         
 def get_hyperparam_names(op: 'lale.operators.IndividualOp') -> List[str]:
     """Names of the arguments to the constructor of the impl.
@@ -291,10 +320,15 @@ def get_default_schema(impl):
             method_args_schema = _get_args_schema(getattr(impl, method_name))
             method_schemas['input_' + method_name] = method_args_schema
             method_schemas['output_' + method_name] = {'laleType': 'Any'}
+    tags = {
+        'pre': [],
+        'op': (['transformer'] if hasattr(impl, 'transform') else [])
+            + (['estimator'] if hasattr(impl, 'predict') else []),
+        'post': []}
     result = {
         '$schema': 'http://json-schema.org/draft-04/schema#',
-        'description':
-        'Combined schema for expected data and hyperparameters.',
+        'description': f'Schema for {type(impl)} auto-generated by lale.type_checking.get_default_schema().',
         'type': 'object',
+        'tags': tags,
         'properties': method_schemas}
     return result

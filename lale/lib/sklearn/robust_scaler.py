@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.preprocessing.data
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class RobustScalerImpl():
@@ -24,14 +24,14 @@ class RobustScalerImpl():
             'with_scaling': with_scaling,
             'quantile_range': quantile_range,
             'copy': copy}
-        self._sklearn_model = sklearn.preprocessing.data.RobustScaler(**self._hyperparams)
+        self._wrapped_model = sklearn.preprocessing.data.RobustScaler(**self._hyperparams)
 
     def fit(self, X, y=None):
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Scale features using statistics that are robust to outliers.',
@@ -110,8 +110,11 @@ _output_transform_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.RobustScaler.html',
+    'description': """`Robust scaler`_ transformer from scikit-learn.
+
+.. _`Robust scaler`: https://scikit-learn.org/0.20/modules/generated/sklearn.preprocessing.RobustScaler.html#sklearn-preprocessing-robustscaler
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.robust_scaler.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -123,6 +126,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RobustScalerImpl, _combined_schemas)
+
 RobustScaler = lale.operators.make_operator(RobustScalerImpl, _combined_schemas)

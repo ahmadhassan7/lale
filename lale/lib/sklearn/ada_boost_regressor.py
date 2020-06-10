@@ -13,16 +13,15 @@
 # limitations under the License.
 
 from sklearn.ensemble.weight_boosting import AdaBoostRegressor as SKLModel
-import lale.helpers
+import lale.docstrings
 import lale.operators
-from numpy import nan, inf
 
 class AdaBoostRegressorImpl():
 
     def __init__(self, base_estimator=None, n_estimators=50, learning_rate=1.0, loss='linear', random_state=None):
         if isinstance(base_estimator, lale.operators.Operator):
             if isinstance(base_estimator, lale.operators.IndividualOp):
-                base_estimator = base_estimator._impl_instance()._sklearn_model
+                base_estimator = base_estimator._impl_instance()._wrapped_model
             else:
                 raise ValueError("If base_estimator is a Lale operator, it needs to be an individual operator. ")
         self._hyperparams = {
@@ -31,17 +30,17 @@ class AdaBoostRegressorImpl():
             'learning_rate': learning_rate,
             'loss': loss,
             'random_state': random_state}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = SKLModel(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for AdaBoostRegressor    An AdaBoost regressor.',
@@ -138,8 +137,11 @@ _output_predict_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.AdaBoostRegressor.html',
+    'description': """`AdaBoost regressor`_ from scikit-learn for boosting ensemble.
+
+.. _`AdaBoost regressor`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.AdaBoostRegressor.html#sklearn-ensemble-adaboostregressor
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.ada_boost_regressor.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -151,7 +153,7 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(AdaBoostRegressorImpl, _combined_schemas)
+
 AdaBoostRegressor = lale.operators.make_operator(AdaBoostRegressorImpl, _combined_schemas)
 

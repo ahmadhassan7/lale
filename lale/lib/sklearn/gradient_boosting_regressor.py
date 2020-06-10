@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.ensemble.gradient_boosting
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class GradientBoostingRegressorImpl():
@@ -42,17 +42,18 @@ class GradientBoostingRegressorImpl():
             'validation_fraction': validation_fraction,
             'n_iter_no_change': n_iter_no_change,
             'tol': tol}
-        self._sklearn_model = sklearn.ensemble.gradient_boosting.GradientBoostingRegressor(**self._hyperparams)
+        self._wrapped_model = sklearn.ensemble.gradient_boosting.GradientBoostingRegressor(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
+
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Gradient Boosting for regression.',
@@ -206,29 +207,8 @@ _hyperparams_schema = {
                 'distribution': 'loguniform',
                 'default': 0.0001,
                 'description': 'Tolerance for the early stopping. When the loss is not improving'},
-        }}, {
-        'description': "alpha, only if loss='huber' or loss='quantile'",
-        'anyOf': [{
-            'type': 'object',
-            'properties': {
-                        'loss': {
-                            'enum': ['huber', 'quantile']},
-                    },
-        }, {
-            'type': 'object',
-            'properties': {
-                'alpha': {
-                    'enum': [0.9]},
-            }}]}, {
-        'description': 'validation_fraction, only used if n_iter_no_change is set to an integer',
-        'anyOf': [
-        { 'type': 'object',
-            'properties': {
-            'n_iter_no_change': {'not': {'enum': ['None']}}}},
-        { 'type': 'object',
-            'properties': {
-            'validation_fraction':{'enum':[0.1]}}}]}],
-}
+        }}]}
+
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Fit the gradient boosting model.',
@@ -286,8 +266,11 @@ _output_predict_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html',
+    'description': """`Gradient boosting regressor`_ random forest from scikit-learn.
+
+.. _`Gradient boosting regressor`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html#sklearn-ensemble-gradientboostingregressor
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.gradient_boosting_regressor.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -299,6 +282,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(GradientBoostingRegressorImpl, _combined_schemas)
+
 GradientBoostingRegressor = lale.operators.make_operator(GradientBoostingRegressorImpl, _combined_schemas)

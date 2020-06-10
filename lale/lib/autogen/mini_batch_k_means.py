@@ -1,7 +1,8 @@
 
-from sklearn.cluster.k_means_ import MiniBatchKMeans as SKLModel
+from sklearn.cluster.k_means_ import MiniBatchKMeans as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class MiniBatchKMeansImpl():
@@ -20,20 +21,20 @@ class MiniBatchKMeansImpl():
             'init_size': init_size,
             'n_init': n_init,
             'reassignment_ratio': reassignment_ratio}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for MiniBatchKMeans    Mini-Batch K-Means clustering',
@@ -117,7 +118,7 @@ _hyperparams_schema = {
                 'description': 'Control the fraction of the maximum number of counts for a center to be reassigned'},
         }}, {
         'XXX TODO XXX': 'Parameter: init_size > only algorithm is initialized by running a batch kmeans on a random subset of the data'}, {
-        'XXX TODO XXX': 'Parameter: n_init > only run once'}],
+        'XXX TODO XXX': 'Parameter: n_init > only run once, using the best of the n_init initializations as measured by inertia'}],
 }
 _input_fit_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -213,10 +214,11 @@ _output_predict_schema = {
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.cluster.MiniBatchKMeans#sklearn-cluster-minibatchkmeans',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['transformer'],
+        'op': ['transformer', 'estimator'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -226,7 +228,6 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(MiniBatchKMeansImpl, _combined_schemas)
 MiniBatchKMeans = lale.operators.make_operator(MiniBatchKMeansImpl, _combined_schemas)
 

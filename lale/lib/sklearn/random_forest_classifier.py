@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sklearn.ensemble.forest
-import lale.helpers
+import lale.docstrings
 import lale.operators
 
 class RandomForestClassifierImpl():
@@ -37,20 +37,20 @@ class RandomForestClassifierImpl():
             'verbose': verbose,
             'warm_start': warm_start,
             'class_weight': class_weight}
-        self._sklearn_model = sklearn.ensemble.forest.RandomForestClassifier(**self._hyperparams)
+        self._wrapped_model = sklearn.ensemble.forest.RandomForestClassifier(**self._hyperparams)
 
     def fit(self, X, y, **fit_params):
         if fit_params is None:
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X, y, **fit_params)
+            self._wrapped_model.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -190,7 +190,8 @@ _input_fit_schema = {
             'description': 'The target values (class labels in classification, real numbers in',
             'anyOf': [
                 {'type': 'array', 'items': {'type': 'number'}},
-                {'type': 'array', 'items': {'type': 'string'}}]},
+                {'type': 'array', 'items': {'type': 'string'}},
+                {'type': 'array', 'items': {'type': 'boolean'}}]},
         'sample_weight': {
             'anyOf': [{
                 'type': 'array',
@@ -221,7 +222,8 @@ _output_predict_schema = {
     'description': 'The predicted classes.',
     'anyOf': [
         {'type': 'array', 'items': {'type': 'number'}},
-        {'type': 'array', 'items': {'type': 'string'}}]}
+        {'type': 'array', 'items': {'type': 'string'}},
+        {'type': 'array', 'items': {'type': 'boolean'}}]}
 
 _input_predict_proba_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -251,8 +253,11 @@ _output_predict_proba_schema = {
 }
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html',
+    'description': """`Random forest classifier`_ from scikit-learn.
+
+.. _`Random forest classifier`: https://scikit-learn.org/0.20/modules/generated/sklearn.ensemble.RandomForestClassifier.html#sklearn-ensemble-randomforestclassifier
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.random_forest_classifier.html',
     'type': 'object',
     'tags': {
         'pre': [],
@@ -266,6 +271,6 @@ _combined_schemas = {
         'input_predict_proba': _input_predict_proba_schema,
         'output_predict_proba': _output_predict_proba_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(RandomForestClassifierImpl, _combined_schemas)
+
 RandomForestClassifier = lale.operators.make_operator(RandomForestClassifierImpl, _combined_schemas)

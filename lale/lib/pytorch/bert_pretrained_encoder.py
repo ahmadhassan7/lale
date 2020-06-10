@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lale.operators import make_operator
+import lale.docstrings
+import lale.operators
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, BertForMaskedLM
 import numpy as np
 import pandas as pd
 import logging
-import lale.helpers
 logging.basicConfig(level=logging.INFO)
 
 class BertPretrainedEncoderImpl():
@@ -169,7 +169,6 @@ _combined_schemas = {
     'input_transform': _input_transform_schema,
     'output_transform': _output_transform_schema}}
 
-if __name__ == "__main__":
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(BertPretrainedEncoderImpl, _combined_schemas)
 
-BertPretrainedEncoder = make_operator(BertPretrainedEncoderImpl, _combined_schemas)
+BertPretrainedEncoder = lale.operators.make_operator(BertPretrainedEncoderImpl, _combined_schemas)

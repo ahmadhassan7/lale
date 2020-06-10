@@ -14,6 +14,7 @@
 
 import unittest
 import jsonschema
+import os
 
 import lale.lib.lale
 from lale.lib.lale import ConcatFeatures
@@ -427,6 +428,13 @@ class TestDatasetSchemas(unittest.TestCase):
             with self.assertRaises(ValueError):
                 TfidfVectorizer.validate_schema(**dataset)
 
+    def test_decision_function_binary(self):
+        from lale.lib.lale import Project
+        train_X, train_y = self._creditG['X'], self._creditG['y']
+        trainable = Project(columns={'type': 'number'}) >> LogisticRegression()
+        trained = trainable.fit(train_X, train_y)
+        decisions = trained.decision_function(train_X)
+
 class TestErrorMessages(unittest.TestCase):
     def test_wrong_cont(self):
         with self.assertRaises(jsonschema.ValidationError) as cm:
@@ -461,3 +469,97 @@ class TestSchemaValidation(unittest.TestCase):
         jsonschema.validate(42, any_schema)        
         self.assertTrue(is_subschema(num_schema, any_schema))
         self.assertTrue(is_subschema(any_schema, num_schema))
+
+    def test_bool_label(self):
+        import pandas as pd
+        data_records = [
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':20, 'MARITAL_STATUS':'Single',  'PROFESSION':'Sales'},
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':20, 'MARITAL_STATUS':'Single',  'PROFESSION':'Sales'},
+            {'IS_TENT':False, 'GENDER':'F', 'AGE':37, 'MARITAL_STATUS':'Single',  'PROFESSION':'Other'},
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':42, 'MARITAL_STATUS':'Married', 'PROFESSION':'Other'},
+            {'IS_TENT':True,  'GENDER':'F', 'AGE':24, 'MARITAL_STATUS':'Married', 'PROFESSION':'Retail'},
+            {'IS_TENT':False, 'GENDER':'F', 'AGE':24, 'MARITAL_STATUS':'Married', 'PROFESSION':'Retail'},
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':29, 'MARITAL_STATUS':'Single',  'PROFESSION':'Retail'},
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':29, 'MARITAL_STATUS':'Single',  'PROFESSION':'Retail'},
+            {'IS_TENT':True,  'GENDER':'M', 'AGE':43, 'MARITAL_STATUS':'Married', 'PROFESSION':'Trades'},
+            {'IS_TENT':False, 'GENDER':'M', 'AGE':43, 'MARITAL_STATUS':'Married', 'PROFESSION':'Trades'}]
+        df = pd.DataFrame.from_records(data_records)
+        X = df.drop(['IS_TENT'], axis=1).values
+        y = df['IS_TENT'].values
+        from lale.lib.sklearn import OneHotEncoder as Enc
+        from lale.lib.sklearn import GradientBoostingClassifier as Clf
+        trainable = Enc() >> Clf()
+        trained = trainable.fit(X, y)
+
+class TestWithScorer(unittest.TestCase):
+    def test_bare_array(self):
+        from lale.datasets.data_schemas import NDArrayWithSchema
+        from numpy import ndarray
+        import sklearn.metrics
+        X, y = sklearn.datasets.load_iris(return_X_y=True)
+        self.assertIsInstance(X, ndarray)
+        self.assertIsInstance(y, ndarray)
+        self.assertNotIsInstance(X, NDArrayWithSchema)
+        self.assertNotIsInstance(y, NDArrayWithSchema)
+        trainable = LogisticRegression()
+        trained = trainable.fit(X, y)
+        scorer = sklearn.metrics.make_scorer(sklearn.metrics.accuracy_score)
+        out = scorer(trained, X, y)
+        self.assertIsInstance(out, float)
+        self.assertNotIsInstance(out, NDArrayWithSchema)
+
+class TestDisablingSchemaValidation(unittest.TestCase):
+    def setUp(self):
+        from sklearn.datasets import load_iris
+        from sklearn.model_selection import train_test_split
+        data = load_iris()
+        X, y = data.data, data.target
+        self.X_train, self.X_test, self.y_train, self.y_test =  train_test_split(X, y)
+
+    def test_disable_schema_validation_individual_op(self):
+        os.environ["LALE_DISABLE_SCHEMA_VALIDATION"]='True'
+        from lale.lib.sklearn import PCA
+        import lale.schemas as schemas
+
+        pca_input = schemas.Object(X=schemas.AnyOf([
+            schemas.Array(
+                schemas.Array(
+                    schemas.String())),
+            schemas.Array(
+                schemas.String())]))
+
+        foo = PCA.customize_schema(input_fit=pca_input)
+
+        pca_output = schemas.Object(X=schemas.AnyOf([
+            schemas.Array(
+                schemas.Array(
+                    schemas.String())),
+            schemas.Array(
+                schemas.String())]))
+
+        foo = foo.customize_schema(output_transform=pca_output)
+
+        abc = foo()
+        trained_pca = abc.fit(self.X_train)
+        trained_pca.transform(self.X_test)
+        os.environ["LALE_DISABLE_SCHEMA_VALIDATION"]='False'
+
+    def test_disable_schema_validation_pipeline(self):
+        os.environ["LALE_DISABLE_SCHEMA_VALIDATION"]='True'
+        from lale.lib.sklearn import PCA, LogisticRegression
+        import lale.schemas as schemas
+
+        lr_input = schemas.Object(required=['X', 'y'], X=schemas.AnyOf([
+            schemas.Array(
+                schemas.Array(
+                    schemas.String())),
+            schemas.Array(
+                schemas.String())]),
+            y=schemas.Array(schemas.String()))
+
+        foo = LogisticRegression.customize_schema(input_fit=lr_input)
+        abc = foo()
+        pipeline = PCA() >> abc
+        trained_pipeline = pipeline.fit(self.X_train, self.y_train)
+        trained_pipeline.predict(self.X_test)
+        os.environ["LALE_DISABLE_SCHEMA_VALIDATION"]='False'

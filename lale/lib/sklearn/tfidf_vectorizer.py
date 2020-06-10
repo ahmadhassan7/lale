@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lale.helpers
+import lale.docstrings
 import lale.operators
 import numpy as np
 import pandas as pd
@@ -23,18 +23,18 @@ class TfidfVectorizerImpl():
         if 'dtype' in hyperparams and hyperparams['dtype'] == 'float64':
             hyperparams = {**hyperparams, 'dtype': np.float64}
         self._hyperparams = hyperparams
-        self._sklearn_model = sklearn.feature_extraction.text.TfidfVectorizer(**self._hyperparams)
+        self._wrapped_model = sklearn.feature_extraction.text.TfidfVectorizer(**self._hyperparams)
 
     def fit(self, X, y=None):
         if isinstance(X, np.ndarray) or isinstance(X, pd.DataFrame):
             X = X.squeeze()
-        self._sklearn_model.fit(X, y)
+        self._wrapped_model.fit(X, y)
         return self
 
     def transform(self, X):
         if isinstance(X, np.ndarray) or isinstance(X, pd.DataFrame):
             X = X.squeeze()
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
@@ -221,8 +221,11 @@ _output_transform_schema = {
 
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
-    'description': 'Combined schema for expected data and hyperparameters.',
-    'documentation_url': 'https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html',
+    'description': """`TF-IDF vectorizer`_ transformer from scikit-learn for turning text into term frequency - inverse document frequency numeric features.
+
+.. _`TF-IDF vectorizer`: https://scikit-learn.org/0.20/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html#sklearn-feature-extraction-text-tfidfvectorizer
+""",
+    'documentation_url': 'https://lale.readthedocs.io/en/latest/modules/lale.lib.sklearn.tfidf_vectorizer.html',
     'type': 'object',
     'tags': {
         'pre': ['text'],
@@ -234,7 +237,6 @@ _combined_schemas = {
         'input_transform': _input_transform_schema,
         'output_transform': _output_transform_schema}}
 
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(TfidfVectorizerImpl, _combined_schemas)
 
 TfidfVectorizer = lale.operators.make_operator(TfidfVectorizerImpl, _combined_schemas)

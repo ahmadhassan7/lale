@@ -1,7 +1,8 @@
 
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as SKLModel
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as Op
 import lale.helpers
 import lale.operators
+import lale.docstrings
 from numpy import nan, inf
 
 class LinearDiscriminantAnalysisImpl():
@@ -14,23 +15,26 @@ class LinearDiscriminantAnalysisImpl():
             'n_components': n_components,
             'store_covariance': store_covariance,
             'tol': tol}
-        self._sklearn_model = SKLModel(**self._hyperparams)
+        self._wrapped_model = Op(**self._hyperparams)
 
     def fit(self, X, y=None):
         if (y is not None):
-            self._sklearn_model.fit(X, y)
+            self._wrapped_model.fit(X, y)
         else:
-            self._sklearn_model.fit(X)
+            self._wrapped_model.fit(X)
         return self
 
     def transform(self, X):
-        return self._sklearn_model.transform(X)
+        return self._wrapped_model.transform(X)
 
     def predict(self, X):
-        return self._sklearn_model.predict(X)
+        return self._wrapped_model.predict(X)
 
     def predict_proba(self, X):
-        return self._sklearn_model.predict_proba(X)
+        return self._wrapped_model.predict_proba(X)
+
+    def decision_function(self, X):
+        return self._wrapped_model.decision_function(X)
 _hyperparams_schema = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'inherited docstring for LinearDiscriminantAnalysis    Linear Discriminant Analysis',
@@ -204,13 +208,42 @@ _output_predict_proba_schema = {
             'type': 'number'},
     },
 }
+_input_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Predict confidence scores for samples.',
+    'type': 'object',
+    'required': ['X'],
+    'properties': {
+        'X': {
+            'anyOf': [{
+                'type': 'array',
+                'items': {
+                    'laleType': 'Any',
+                    'XXX TODO XXX': 'item type'},
+                'XXX TODO XXX': 'array_like or sparse matrix, shape (n_samples, n_features)'}, {
+                'type': 'array',
+                'items': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'number'},
+                }}],
+            'description': 'Samples.'},
+    },
+}
+_output_decision_function_schema = {
+    '$schema': 'http://json-schema.org/draft-04/schema#',
+    'description': 'Confidence scores per (sample, class) combination',
+    'laleType': 'Any',
+    'XXX TODO XXX': 'array, shape=(n_samples,) if n_classes == 2 else (n_samples, n_classes)',
+}
 _combined_schemas = {
     '$schema': 'http://json-schema.org/draft-04/schema#',
     'description': 'Combined schema for expected data and hyperparameters.',
+    'documentation_url': 'https://scikit-learn.org/0.20/modules/generated/sklearn.discriminant_analysis.LinearDiscriminantAnalysis#sklearn-discriminant_analysis-lineardiscriminantanalysis',
     'type': 'object',
     'tags': {
         'pre': [],
-        'op': ['transformer'],
+        'op': ['transformer', 'estimator'],
         'post': []},
     'properties': {
         'hyperparams': _hyperparams_schema,
@@ -220,9 +253,10 @@ _combined_schemas = {
         'input_predict': _input_predict_schema,
         'output_predict': _output_predict_schema,
         'input_predict_proba': _input_predict_proba_schema,
-        'output_predict_proba': _output_predict_proba_schema},
+        'output_predict_proba': _output_predict_proba_schema,
+        'input_decision_function': _input_decision_function_schema,
+        'output_decision_function': _output_decision_function_schema},
 }
-if (__name__ == '__main__'):
-    lale.helpers.validate_is_schema(_combined_schemas)
+lale.docstrings.set_docstrings(LinearDiscriminantAnalysisImpl, _combined_schemas)
 LinearDiscriminantAnalysis = lale.operators.make_operator(LinearDiscriminantAnalysisImpl, _combined_schemas)
 

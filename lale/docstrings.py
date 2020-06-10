@@ -2,12 +2,15 @@ import pprint
 
 def _indent(prefix, string, first_prefix=None):
     lines = string.splitlines()
-    if first_prefix is None:
-        first_prefix = prefix
-    first_indented = (first_prefix + lines[0]).rstrip()
-    rest_indented = [(prefix + line).rstrip() for line in lines[1:]]
-    result = first_indented + '\n' + '\n'.join(rest_indented)
-    return result
+    if lines:
+        if first_prefix is None:
+            first_prefix = prefix
+        first_indented = (first_prefix + lines[0]).rstrip()
+        rest_indented = [(prefix + line).rstrip() for line in lines[1:]]
+        result = first_indented + '\n' + '\n'.join(rest_indented)
+        return result
+    else:
+        return ""
 
 def _value_docstring(value):
     return pprint.pformat(value, width=10000, compact=True)
@@ -16,6 +19,10 @@ def _kind_tag(schema):
     if 'type' in schema:
         if schema['type'] == 'object':
             return 'dict'
+        elif schema['type'] == 'number':
+            return 'float'
+        elif isinstance(schema['type'], list):
+            return ' or '.join(schema['type'])
         else:
             return schema['type']
     elif 'enum' in schema:
@@ -42,7 +49,8 @@ def _schema_docstring(name, schema, required=True, relevant=True):
     tags = []
     if 'laleType' in schema:
         tags.append(schema['laleType'])
-    tags.append(_kind_tag(schema))
+    else:
+        tags.append(_kind_tag(schema))
     if 'minimum' in schema:
         op = '>' if schema.get('exclusiveMinimum', False) else '>='
         tags.append(op + _value_docstring(schema['minimum']))
@@ -69,7 +77,7 @@ def _schema_docstring(name, schema, required=True, relevant=True):
                     + ' items for optimizer')
     if not required:
         tags.append('optional')
-    if not relevant or schema.get('forOptimizer', False):
+    if not relevant or schema.get('forOptimizer', True) == False:
         tags.append('not for optimizer')
     if 'default' in schema:
         tags.append('default ' + _value_docstring(schema['default']))
@@ -86,20 +94,26 @@ def _schema_docstring(name, schema, required=True, relevant=True):
     elif 'not' in schema:
         body = item_docstring(None, schema['not'])
     elif schema.get('type', '') == 'array':
-        items_schemas = schema['items']
-        if isinstance(items_schemas, dict):
-            body = item_docstring('items', items_schemas)
-        else:
-            items_docstrings = [item_docstring(f'item {i}', s)
-                                for i, s in enumerate(items_schemas)]
-            body = '\n\n'.join(items_docstrings)
+        if 'items' in schema:
+            items_schemas = schema['items']
+            if isinstance(items_schemas, dict):
+                body = item_docstring('items', items_schemas)
+            else:
+                items_docstrings = [item_docstring(f'item {i}', s)
+                                    for i, s in enumerate(items_schemas)]
+                body = '\n\n'.join(items_docstrings)
     elif schema.get('type', '') == 'object' and 'properties' in schema:
         item_docstrings = [item_docstring(k, s)
                            for k, s in schema['properties'].items()]
         body = '\n\n'.join(item_docstrings)
     result = name + ' : ' if name else ''
-    result += ', '.join(tags)
+    try:
+        result += ', '.join(tags)
+    except BaseException as e:
+        raise ValueError(f'Unexpected internal error for {schema}.') from e
     assert len(result) > 0 and result.rstrip() == result
+    if result.startswith('-'):
+        result = '\\' + result
     if body is not None and body.find('\n') == -1:
         assert body.startswith('  - ')
         result += ' **of** ' + body[4:]
@@ -110,11 +124,12 @@ def _schema_docstring(name, schema, required=True, relevant=True):
     return result.rstrip()
 
 def _params_docstring(params_schema):
-    if len(params_schema['properties']) == 0:
+    params = params_schema.get('properties', {})
+    if len(params) == 0:
         result = ''
     else:
         result = 'Parameters\n----------\n'
-    for param_name, param_schema in params_schema['properties'].items():
+    for param_name, param_schema in params.items():
         required = param_name in params_schema.get('required', {})
         relevant = ('relevantToOptimizer' not in params_schema
                     or param_name in params_schema['relevantToOptimizer'])
@@ -163,25 +178,36 @@ def set_docstrings(impl_cls, combined_schemas):
     assert impl_cls.__doc__ is None
     impl_cls.__doc__ = _cls_docstring(impl_cls, combined_schemas)
     if hasattr(impl_cls, 'fit'):
-        assert impl_cls.fit.__doc__ is None
-        impl_cls.fit.__doc__ = _method_docstring(
+        fit_doc = _method_docstring(
             'Train the operator.',
             combined_schemas['properties']['input_fit'])
+        assert impl_cls.fit.__doc__ in [None, fit_doc]
+        impl_cls.fit.__doc__ = fit_doc
     if hasattr(impl_cls, 'transform'):
-        assert impl_cls.transform.__doc__ is None
-        impl_cls.transform.__doc__ = _method_docstring(
+        transform_doc = _method_docstring(
             'Transform the data.',
             combined_schemas['properties']['input_transform'],
             combined_schemas['properties']['output_transform'])
+        assert impl_cls.transform.__doc__ in [None, transform_doc]
+        impl_cls.transform.__doc__ = transform_doc
     if hasattr(impl_cls, 'predict'):
-        assert impl_cls.predict.__doc__ is None
-        impl_cls.predict.__doc__ = _method_docstring(
+        predict_doc = _method_docstring(
             'Make predictions.',
             combined_schemas['properties']['input_predict'],
             combined_schemas['properties']['output_predict'])
+        assert impl_cls.predict.__doc__ in [None, predict_doc]
+        impl_cls.predict.__doc__ = predict_doc
     if hasattr(impl_cls, 'predict_proba'):
-        assert impl_cls.predict_proba.__doc__ is None
-        impl_cls.predict_proba.__doc__ = _method_docstring(
+        predict_proba_doc = _method_docstring(
             'Probability estimates for all classes.',
-            combined_schemas['properties']['input_predict'],
+            combined_schemas['properties']['input_predict_proba'],
             combined_schemas['properties']['output_predict_proba'])
+        assert impl_cls.predict_proba.__doc__ in [None, predict_proba_doc]
+        impl_cls.predict_proba.__doc__ = predict_proba_doc
+    if hasattr(impl_cls, 'decision_function'):
+        decision_function_doc = _method_docstring(
+            'Confidence scores for all classes.',
+            combined_schemas['properties']['input_decision_function'],
+            combined_schemas['properties']['output_decision_function'])
+        assert impl_cls.decision_function.__doc__ in [None, decision_function_doc]
+        impl_cls.decision_function.__doc__ = decision_function_doc
